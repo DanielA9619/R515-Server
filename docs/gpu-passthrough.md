@@ -75,9 +75,44 @@ Interpretation: Proxmox sees the P400 and its HDMI/DisplayPort audio function. T
 | Quadro P400 GPU | `01:00.0` | `10de:1cb3` |
 | NVIDIA audio function | `01:00.1` | `10de:0fb9` |
 
+## IOMMU status
+
+Command on Proxmox host:
+
+```bash
+dmesg | grep -e DMAR -e IOMMU -e AMD-Vi
+```
+
+Result:
+
+```text
+[    0.288523] AGP: Please enable the IOMMU option in the BIOS setup
+[    0.685438] AMD-Vi: Using global IVHD EFR:0x0, EFR2:0x0
+[    1.089808] AMD-Vi: Interrupt remapping enabled
+```
+
+Command on Proxmox host:
+
+```bash
+find /sys/kernel/iommu_groups/ -type l | grep 01:00
+```
+
+Result:
+
+```text
+/sys/kernel/iommu_groups/10/devices/0000:01:00.0
+/sys/kernel/iommu_groups/10/devices/0000:01:00.1
+```
+
+Interpretation:
+
+- IOMMU groups exist, so IOMMU is active enough for passthrough work.
+- Both P400 functions are in IOMMU group `10`.
+- Next step is to verify group `10` contains only the P400 GPU and audio functions, then bind both IDs to `vfio-pci`.
+
 ## Next steps
 
-1. Confirm IOMMU is enabled for the Proxmox host.
+1. Confirm IOMMU group `10` contains only the P400 GPU and audio function.
 2. Load VFIO modules.
 3. Bind `10de:1cb3` and `10de:0fb9` to `vfio-pci`.
 4. Blacklist host GPU drivers that claim the card, especially `nouveau`.
