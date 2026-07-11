@@ -29,6 +29,7 @@ Do not forward Jellyfin `8096` publicly while Caddy is working.
 - `docker01` IP: `192.168.10.135`
 - `docker01` IP is reserved in UniFi
 - `docker01` is set to start at boot
+- Planned additional VM: dedicated Home Assistant OS VM
 
 ## Debian VM
 
@@ -123,6 +124,59 @@ Windows media copy locations:
 \\192.168.10.135\media\media\tv
 \\192.168.10.135\media\media\music
 ```
+
+## Home Assistant
+
+Current Home Assistant is still on the Raspberry Pi and is not fully built out yet.
+
+Current status:
+
+- Backup is having trouble.
+- Only around 3 add-ons are currently installed.
+- Because the setup is still small, rebuilding cleanly on a new HAOS VM is acceptable and may be simpler than fighting the backup problem.
+
+Recommended direction:
+
+- Create a fresh HAOS VM in Proxmox.
+- Rebuild Home Assistant manually.
+- Keep the Raspberry Pi unchanged until the new VM is confirmed working.
+- If possible, manually record or screenshot key integrations, add-ons, dashboards, and automations before rebuilding.
+
+## NVIDIA / Jellyfin transcoding
+
+Hardware installed in the R515:
+
+- NVIDIA Quadro P400
+
+Current test from inside Debian VM `docker01`:
+
+```bash
+lspci | grep -i nvidia
+```
+
+Result:
+
+```text
+No output
+```
+
+Current test from inside Debian VM `docker01`:
+
+```bash
+nvidia-smi
+```
+
+Result:
+
+```text
+-bash: nvidia-smi: command not found
+```
+
+Interpretation:
+
+- The P400 is not currently visible inside the Debian VM.
+- NVIDIA drivers are not installed inside the Debian VM.
+- Before Jellyfin hardware transcoding can be configured, the GPU needs to be passed through to `docker01` or another architecture needs to be chosen.
 
 ## Backups
 
