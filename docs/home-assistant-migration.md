@@ -20,7 +20,14 @@ The Raspberry Pi Home Assistant backup is having trouble, and the current setup 
 Known current state:
 
 - Home Assistant is still on the Raspberry Pi.
+- Current Raspberry Pi Home Assistant IP: `192.168.10.190`.
 - Only around 3 add-ons are installed.
+- Current add-ons/integrations to recreate/document:
+  - HACS
+  - Matter Server
+  - UniFi Network
+- Home Assistant hardware/radio approach: network-based devices, not USB dongles.
+- Remote access is currently enabled.
 - The setup is small enough that a clean rebuild is reasonable.
 
 Recommendation:
@@ -86,6 +93,15 @@ Document the existing Home Assistant setup:
 - Screenshot dashboards you care about.
 - Write down any automations, helpers, scenes, scripts, or custom cards worth keeping.
 - Record whether any mobile apps, tablets, bookmarks, or automations point directly to the Raspberry Pi IP.
+- Record current remote access settings before shutting down the Pi.
+
+Current known items to recreate:
+
+- HACS
+- Matter Server
+- UniFi Network
+- Network-based Matter/Thread setup, no known USB dongles
+- Remote access setup
 
 ### 2. Build the HAOS VM
 
@@ -107,20 +123,18 @@ Recommended order:
 6. Automations.
 7. Dashboards.
 8. Mobile app connection.
+9. Remote access.
 
 ### 4. Cutover
 
 1. Shut down the Raspberry Pi Home Assistant.
 2. Keep the Raspberry Pi untouched for several days as a fallback.
 3. Update bookmarks, mobile apps, dashboards, and anything else pointing to the old IP.
-4. Once the new VM is stable, make a fresh HAOS backup immediately.
+4. Confirm remote access works on the new VM.
+5. Once the new VM is stable, make a fresh HAOS backup immediately.
 
 ## Open details to fill in
 
-- Current Raspberry Pi Home Assistant IP
-- Whether Home Assistant currently uses ZHA, Zigbee2MQTT, Z-Wave JS, Matter, Thread, or other USB/radio hardware
-- Whether any USB dongles need to be passed through to the HAOS VM
-- Whether Home Assistant has external access configured
+- Whether any dashboards, mobile apps, tablets, bookmarks, or automations point directly to `192.168.10.190`
 - Whether Home Assistant uses a custom domain
-- Which 3 add-ons are currently installed
 - Whether the history database should stay local or eventually move to MariaDB/Postgres
