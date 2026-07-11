@@ -25,6 +25,7 @@ Do not forward Jellyfin `8096` publicly while Caddy is working.
 ## Proxmox
 
 - Host IP: `192.168.10.50`
+- Hostname seen in shell: `r515`
 - VM: `docker01`
 - `docker01` IP: `192.168.10.135`
 - `docker01` IP is reserved in UniFi
@@ -131,8 +132,14 @@ Current Home Assistant is still on the Raspberry Pi and is not fully built out y
 
 Current status:
 
+- Raspberry Pi Home Assistant IP: `192.168.10.190`
 - Backup is having trouble.
-- Only around 3 add-ons are currently installed.
+- Only around 3 add-ons/integrations need to be recreated right now:
+  - HACS
+  - Matter Server
+  - UniFi Network
+- Hardware/radio approach is network-based, not USB dongles.
+- Remote access is currently enabled.
 - Because the setup is still small, rebuilding cleanly on a new HAOS VM is acceptable and may be simpler than fighting the backup problem.
 
 Recommended direction:
@@ -172,11 +179,38 @@ Result:
 -bash: nvidia-smi: command not found
 ```
 
+Current test from Proxmox host `r515`:
+
+```bash
+lspci | grep -i nvidia
+```
+
+Result:
+
+```text
+01:00.0 VGA compatible controller: NVIDIA Corporation GP107GL [Quadro P400] (rev a1)
+01:00.1 Audio device: NVIDIA Corporation GP107GL High Definition Audio Controller (rev a1)
+```
+
+Detailed Proxmox host result:
+
+```text
+01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP107GL [Quadro P400] [10de:1cb3] (rev a1)
+        Subsystem: Dell Device [1028:11be]
+        Kernel driver in use: nouveau
+        Kernel modules: nvidiafb, nouveau
+01:00.1 Audio device [0403]: NVIDIA Corporation GP107GL High Definition Audio Controller [10de:0fb9] (rev a1)
+        Subsystem: Dell Device [1028:11be]
+        Kernel driver in use: snd_hda_intel
+        Kernel modules: snd_hda_intel
+```
+
 Interpretation:
 
-- The P400 is not currently visible inside the Debian VM.
-- NVIDIA drivers are not installed inside the Debian VM.
-- Before Jellyfin hardware transcoding can be configured, the GPU needs to be passed through to `docker01` or another architecture needs to be chosen.
+- Proxmox sees the P400.
+- Debian `docker01` does not currently see the P400.
+- Proxmox is currently binding the GPU to `nouveau` and the audio function to `snd_hda_intel`.
+- Before Jellyfin hardware transcoding can be configured, the P400 needs to be passed through from Proxmox to `docker01`.
 
 ## Backups
 
