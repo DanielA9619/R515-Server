@@ -62,6 +62,13 @@ Planned Docker services:
 - qBittorrent
 - Possibly Radarr / Sonarr / Prowlarr later
 
+## Documentation
+
+- [`docs/current-config.md`](docs/current-config.md) — current known server configuration
+- [`docs/roadmap.md`](docs/roadmap.md) — service build order and priorities
+- [`docs/home-assistant-migration.md`](docs/home-assistant-migration.md) — HAOS VM migration plan
+- [`docs/open-questions.md`](docs/open-questions.md) — info still needed
+
 ## Current Priorities
 
 1. Migrate Home Assistant from Raspberry Pi to a dedicated HAOS VM.
