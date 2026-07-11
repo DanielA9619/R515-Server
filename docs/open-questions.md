@@ -29,18 +29,21 @@ These are the details still needed to fully document and finish the server setup
 Known:
 
 - Current Raspberry Pi Home Assistant backup is having trouble.
+- Current Raspberry Pi Home Assistant IP: `192.168.10.190`.
 - Current setup is not fully built out yet.
-- Only around 3 add-ons are installed.
+- Only around 3 add-ons/integrations need to be recreated now:
+  - HACS
+  - Matter Server
+  - UniFi Network
+- Home Assistant currently uses network-based devices/radios, not USB dongles.
+- Remote access is currently enabled.
 - Clean rebuild on a new HAOS VM is currently considered acceptable.
 
 Still needed:
 
-1. What is the current Raspberry Pi Home Assistant IP?
-2. What are the 3 installed add-ons?
-3. What hardware does Home Assistant use for Matter/Thread/Zigbee/Z-Wave?
-4. Does Home Assistant use an Aqara M100, Inovelli devices, or any USB dongles?
-5. Does Home Assistant currently have remote access configured?
-6. Do any dashboards, wall tablets, phone apps, or automations point to the Pi IP directly?
+1. Do any dashboards, wall tablets, phone apps, bookmarks, or automations point to `192.168.10.190` directly?
+2. Does Home Assistant use a custom domain?
+3. Which remote access method is used? Home Assistant Cloud/Nabu Casa, port forward, VPN, Cloudflare Tunnel, or something else?
 
 ## Jellyfin / GPU transcoding details
 
