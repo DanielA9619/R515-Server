@@ -69,29 +69,47 @@ Result:
 -bash: nvidia-smi: command not found
 ```
 
-Interpretation:
-
-- The NVIDIA Quadro P400 is not currently visible inside `docker01`.
-- NVIDIA drivers are not currently installed inside `docker01`.
-- Jellyfin hardware transcoding cannot be configured yet from inside Docker.
-- Next step is to confirm whether the P400 is visible on the Proxmox host, then pass it through to `docker01`.
-
-Still needed:
-
-1. On the Proxmox host, output of:
+Known from Proxmox host `r515`:
 
 ```bash
 lspci | grep -i nvidia
 ```
 
-2. On the Proxmox host, output of:
+Result:
 
-```bash
-lspci -nnk | grep -A3 -i nvidia
+```text
+01:00.0 VGA compatible controller: NVIDIA Corporation GP107GL [Quadro P400] (rev a1)
+01:00.1 Audio device: NVIDIA Corporation GP107GL High Definition Audio Controller (rev a1)
 ```
 
-3. Current Jellyfin Docker Compose GPU settings, if any.
-4. What clients need transcoding? Roku, phone, browser, Fire TV, etc.
+Detailed host result:
+
+```text
+01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP107GL [Quadro P400] [10de:1cb3] (rev a1)
+        Subsystem: Dell Device [1028:11be]
+        Kernel driver in use: nouveau
+        Kernel modules: nvidiafb, nouveau
+01:00.1 Audio device [0403]: NVIDIA Corporation GP107GL High Definition Audio Controller [10de:0fb9] (rev a1)
+        Subsystem: Dell Device [1028:11be]
+        Kernel driver in use: snd_hda_intel
+        Kernel modules: snd_hda_intel
+```
+
+Interpretation:
+
+- Proxmox sees the NVIDIA Quadro P400.
+- Debian `docker01` does not currently see the P400.
+- Proxmox is binding the GPU to `nouveau` and the audio function to `snd_hda_intel`.
+- Next step is GPU passthrough from Proxmox to `docker01`.
+
+Still needed:
+
+1. Confirm IOMMU/AMD-Vi is enabled and active on Proxmox.
+2. Bind GPU device IDs `10de:1cb3` and `10de:0fb9` to `vfio-pci`.
+3. Add the P400 PCI devices to `docker01`.
+4. Install NVIDIA driver and NVIDIA Container Toolkit inside Debian.
+5. Current Jellyfin Docker Compose GPU settings, if any.
+6. What clients need transcoding? Roku, phone, browser, Fire TV, etc.
 
 ## Future services
 
