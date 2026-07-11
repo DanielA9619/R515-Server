@@ -26,29 +26,69 @@ These are the details still needed to fully document and finish the server setup
 
 ## Home Assistant details
 
+Known:
+
+- Current Raspberry Pi Home Assistant backup is having trouble.
+- Current setup is not fully built out yet.
+- Only around 3 add-ons are installed.
+- Clean rebuild on a new HAOS VM is currently considered acceptable.
+
+Still needed:
+
 1. What is the current Raspberry Pi Home Assistant IP?
-2. What hardware does Home Assistant use for Matter/Thread/Zigbee/Z-Wave?
-3. Does Home Assistant use an Aqara M100, Inovelli devices, or any USB dongles?
-4. Does Home Assistant currently have remote access configured?
-5. Do any dashboards, wall tablets, phone apps, or automations point to the Pi IP directly?
+2. What are the 3 installed add-ons?
+3. What hardware does Home Assistant use for Matter/Thread/Zigbee/Z-Wave?
+4. Does Home Assistant use an Aqara M100, Inovelli devices, or any USB dongles?
+5. Does Home Assistant currently have remote access configured?
+6. Do any dashboards, wall tablets, phone apps, or automations point to the Pi IP directly?
 
 ## Jellyfin / GPU transcoding details
 
-1. Is the P400 passed through to `docker01`, or is it only visible on the Proxmox host right now?
-2. Output of this command inside Debian:
+Known from inside Debian VM `docker01`:
 
 ```bash
 lspci | grep -i nvidia
 ```
 
-3. Output of this command inside Debian, if NVIDIA drivers are installed:
+Result:
+
+```text
+No output
+```
 
 ```bash
 nvidia-smi
 ```
 
-4. Current Jellyfin Docker Compose GPU settings, if any.
-5. What clients need transcoding? Roku, phone, browser, Fire TV, etc.
+Result:
+
+```text
+-bash: nvidia-smi: command not found
+```
+
+Interpretation:
+
+- The NVIDIA Quadro P400 is not currently visible inside `docker01`.
+- NVIDIA drivers are not currently installed inside `docker01`.
+- Jellyfin hardware transcoding cannot be configured yet from inside Docker.
+- Next step is to confirm whether the P400 is visible on the Proxmox host, then pass it through to `docker01`.
+
+Still needed:
+
+1. On the Proxmox host, output of:
+
+```bash
+lspci | grep -i nvidia
+```
+
+2. On the Proxmox host, output of:
+
+```bash
+lspci -nnk | grep -A3 -i nvidia
+```
+
+3. Current Jellyfin Docker Compose GPU settings, if any.
+4. What clients need transcoding? Roku, phone, browser, Fire TV, etc.
 
 ## Future services
 
