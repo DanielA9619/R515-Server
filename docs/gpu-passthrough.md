@@ -53,7 +53,7 @@ Command:
 lspci -nnk | grep -A3 -i nvidia
 ```
 
-Result:
+Initial result before VFIO:
 
 ```text
 01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP107GL [Quadro P400] [10de:1cb3] (rev a1)
@@ -66,7 +66,7 @@ Result:
         Kernel modules: snd_hda_intel
 ```
 
-Interpretation: Proxmox sees the P400 and its HDMI/DisplayPort audio function. The host is currently binding the GPU to `nouveau` and the audio function to `snd_hda_intel`. For passthrough, the GPU functions should be bound to `vfio-pci` instead.
+Interpretation: Proxmox sees the P400 and its HDMI/DisplayPort audio function.
 
 ## Device IDs
 
@@ -141,22 +141,44 @@ Interpretation:
 - It contains only the P400 GPU and the P400 audio function.
 - This is suitable for passing the whole GPU device to `docker01`.
 
+## VFIO binding status
+
+VFIO modules/config were added on the Proxmox host and initramfs was rebuilt.
+
+After reboot, Proxmox host checks show:
+
+```text
+01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP107GL [Quadro P400] [10de:1cb3] (rev a1)
+        Subsystem: Dell Device [1028:11be]
+        Kernel driver in use: vfio-pci
+        Kernel modules: nvidiafb, nouveau
+```
+
+```text
+01:00.1 Audio device [0403]: NVIDIA Corporation GP107GL High Definition Audio Controller [10de:0fb9] (rev a1)
+        Subsystem: Dell Device [1028:11be]
+        Kernel driver in use: vfio-pci
+        Kernel modules: snd_hda_intel
+```
+
+Interpretation:
+
+- The Proxmox host is no longer using `nouveau` or `snd_hda_intel` for the P400 functions.
+- Both P400 functions are now bound to `vfio-pci`.
+- The next step is attaching the GPU to `docker01` as a PCI device.
+
 ## Next steps
 
-1. Load VFIO modules.
-2. Bind `10de:1cb3` and `10de:0fb9` to `vfio-pci`.
-3. Blacklist host GPU drivers that claim the card, especially `nouveau`.
-4. Rebuild initramfs and reboot Proxmox.
-5. Confirm the P400 is using `vfio-pci` on the Proxmox host.
-6. Add both GPU functions to the `docker01` VM as PCI devices.
-7. Boot Debian and confirm `lspci | grep -i nvidia` sees the P400.
-8. Install NVIDIA driver and NVIDIA Container Toolkit inside Debian.
-9. Update Jellyfin Docker Compose to expose the GPU to Jellyfin.
-10. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
+1. Shut down `docker01`.
+2. Add the P400 PCI device to the `docker01` VM.
+3. Boot Debian and confirm `lspci | grep -i nvidia` sees the P400.
+4. Install NVIDIA driver and NVIDIA Container Toolkit inside Debian.
+5. Update Jellyfin Docker Compose to expose the GPU to Jellyfin.
+6. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
 
 ## Notes
 
 - Do not install NVIDIA drivers on the Proxmox host for this passthrough plan.
-- The Proxmox host should stop using `nouveau` for the P400.
+- The Proxmox host should keep the P400 bound to `vfio-pci`.
 - The Debian VM should own the GPU after passthrough.
 - If passthrough causes boot/display trouble, revert the VFIO binding and remove the PCI device from the VM.
