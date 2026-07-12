@@ -39,6 +39,7 @@ Do not forward Jellyfin `8096` publicly while Caddy is working.
 - Samba installed
 - DuckDNS updater cron job installed
 - Docker app/config path: `/srv/docker`
+- Active Docker Compose file: `/srv/docker/docker-compose.yml`
 - Config backups stored under `/mnt/storage/backups`
 
 ## Storage
@@ -60,6 +61,49 @@ Known folders:
 /mnt/storage/backups
 /mnt/storage/downloads
 /mnt/storage/shared
+```
+
+## Docker Compose layout
+
+Active Compose file:
+
+```text
+/srv/docker/docker-compose.yml
+```
+
+Current running containers:
+
+| Container | Image | Notes |
+| --- | --- | --- |
+| `jellyfin` | `jellyfin/jellyfin:latest` | Media server, port `8096` |
+| `caddy` | `caddy:latest` | Reverse proxy, ports `80` and `443` |
+
+Current Compose file before NVIDIA runtime edit:
+
+```yaml
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    ports:
+      - "8096:8096"
+    volumes:
+      - /srv/docker/jellyfin/config:/config
+      - /srv/docker/jellyfin/cache:/cache
+      - /mnt/storage/media:/media
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /srv/docker/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - /srv/docker/caddy/data:/data
+      - /srv/docker/caddy/config:/config
 ```
 
 ## Jellyfin
@@ -155,62 +199,33 @@ Hardware installed in the R515:
 
 - NVIDIA Quadro P400
 
-Current test from inside Debian VM `docker01`:
-
-```bash
-lspci | grep -i nvidia
-```
-
-Result:
-
-```text
-No output
-```
-
-Current test from inside Debian VM `docker01`:
-
-```bash
-nvidia-smi
-```
-
-Result:
-
-```text
--bash: nvidia-smi: command not found
-```
-
-Current test from Proxmox host `r515`:
-
-```bash
-lspci | grep -i nvidia
-```
-
-Result:
-
-```text
-01:00.0 VGA compatible controller: NVIDIA Corporation GP107GL [Quadro P400] (rev a1)
-01:00.1 Audio device: NVIDIA Corporation GP107GL High Definition Audio Controller (rev a1)
-```
-
-Detailed Proxmox host result:
-
-```text
-01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP107GL [Quadro P400] [10de:1cb3] (rev a1)
-        Subsystem: Dell Device [1028:11be]
-        Kernel driver in use: nouveau
-        Kernel modules: nvidiafb, nouveau
-01:00.1 Audio device [0403]: NVIDIA Corporation GP107GL High Definition Audio Controller [10de:0fb9] (rev a1)
-        Subsystem: Dell Device [1028:11be]
-        Kernel driver in use: snd_hda_intel
-        Kernel modules: snd_hda_intel
-```
-
-Interpretation:
+Current status:
 
 - Proxmox sees the P400.
-- Debian `docker01` does not currently see the P400.
-- Proxmox is currently binding the GPU to `nouveau` and the audio function to `snd_hda_intel`.
-- Before Jellyfin hardware transcoding can be configured, the P400 needs to be passed through from Proxmox to `docker01`.
+- P400 is bound to `vfio-pci` on the Proxmox host.
+- P400 was passed through to `docker01` as a raw PCI device.
+- Debian `docker01` sees the P400.
+- NVIDIA driver works inside Debian.
+- NVIDIA Container Toolkit works with Docker using the explicit NVIDIA runtime.
+- Next step is adding NVIDIA runtime settings to the Jellyfin Compose service.
+
+Working Debian `nvidia-smi` result:
+
+```text
+NVIDIA-SMI 550.163.01             Driver Version: 550.163.01     CUDA Version: 12.4
+GPU  Name                 Persistence-M | Bus-Id          Disp.A | Memory-Usage
+0    Quadro P400                    Off | 00000000:00:10.0 Off | 2MiB / 2048MiB
+```
+
+Working Docker GPU test:
+
+```bash
+docker run --rm \
+  --runtime=nvidia \
+  -e NVIDIA_VISIBLE_DEVICES=all \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
+  nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+```
 
 ## Backups
 
