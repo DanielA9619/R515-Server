@@ -269,14 +269,35 @@ Interpretation:
 - Docker can access the P400 using the explicit NVIDIA runtime.
 - Jellyfin Docker Compose should use `runtime: nvidia` plus NVIDIA environment variables rather than relying only on `--gpus all`.
 
+## Jellyfin Docker Compose location
+
+Active Compose file:
+
+```text
+/srv/docker/docker-compose.yml
+```
+
+Running containers:
+
+```text
+NAMES      IMAGE                      PORTS
+caddy      caddy:latest               0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp, 443/udp, 2019/tcp
+jellyfin   jellyfin/jellyfin:latest   0.0.0.0:8096->8096/tcp
+```
+
+Interpretation:
+
+- Jellyfin service/container name is `jellyfin`.
+- Caddy service/container name is `caddy`.
+- The next step is backing up and editing `/srv/docker/docker-compose.yml`.
+
 ## Next steps
 
-1. Locate the active Jellyfin Docker Compose file.
-2. Back up the current Compose file.
-3. Update the Jellyfin service with NVIDIA runtime settings.
-4. Restart Jellyfin.
-5. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
-6. Test playback/transcoding and watch `nvidia-smi`.
+1. Back up `/srv/docker/docker-compose.yml`.
+2. Update the Jellyfin service with NVIDIA runtime settings.
+3. Restart Jellyfin.
+4. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
+5. Test playback/transcoding and watch `nvidia-smi`.
 
 ## Notes
 
