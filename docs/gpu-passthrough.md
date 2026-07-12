@@ -209,16 +209,74 @@ Interpretation:
 
 - Debian owns the P400 successfully.
 - NVIDIA driver version `550.163.01` is working.
-- The next step is installing NVIDIA Container Toolkit so Docker/Jellyfin can use the GPU.
+
+## NVIDIA Container Toolkit / Docker status
+
+NVIDIA Container Toolkit was installed inside `docker01`.
+
+Toolkit check:
+
+```text
+which nvidia-ctk
+/usr/bin/nvidia-ctk
+
+nvidia-ctk --version
+NVIDIA Container Toolkit CLI version 1.19.1
+```
+
+Docker runtime configuration:
+
+```json
+{
+    "runtimes": {
+        "nvidia": {
+            "args": [],
+            "path": "nvidia-container-runtime"
+        }
+    }
+}
+```
+
+Docker runtime check:
+
+```text
+Runtimes: io.containerd.runc.v2 nvidia runc
+Default Runtime: runc
+```
+
+The generic `docker run --rm --gpus all ...` test returned an AMD CDI spec error, but the explicit NVIDIA runtime test works.
+
+Successful Docker GPU test:
+
+```bash
+docker run --rm \
+  --runtime=nvidia \
+  -e NVIDIA_VISIBLE_DEVICES=all \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
+  nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+```
+
+Result:
+
+```text
+NVIDIA-SMI 550.163.01             Driver Version: 550.163.01     CUDA Version: 12.4
+GPU  Name                 Persistence-M | Bus-Id          Disp.A | Memory-Usage
+0    Quadro P400                     On | 00000000:00:10.0 Off | 2MiB / 2048MiB
+```
+
+Interpretation:
+
+- Docker can access the P400 using the explicit NVIDIA runtime.
+- Jellyfin Docker Compose should use `runtime: nvidia` plus NVIDIA environment variables rather than relying only on `--gpus all`.
 
 ## Next steps
 
-1. Install NVIDIA Container Toolkit inside Debian.
-2. Configure Docker runtime with `nvidia-ctk`.
-3. Restart Docker.
-4. Test Docker GPU access.
-5. Update Jellyfin Docker Compose to expose the GPU to Jellyfin.
-6. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
+1. Locate the active Jellyfin Docker Compose file.
+2. Back up the current Compose file.
+3. Update the Jellyfin service with NVIDIA runtime settings.
+4. Restart Jellyfin.
+5. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
+6. Test playback/transcoding and watch `nvidia-smi`.
 
 ## Notes
 
@@ -226,3 +284,4 @@ Interpretation:
 - The Proxmox host should keep the P400 bound to `vfio-pci`.
 - The Debian VM should own the GPU after passthrough.
 - If passthrough causes boot/display trouble, remove the PCI device from the VM and revert VFIO binding if needed.
+- The duplicate `non-free-firmware` apt warnings should be cleaned up later, but they are not blocking Jellyfin GPU work.
