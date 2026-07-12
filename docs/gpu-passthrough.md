@@ -324,14 +324,43 @@ GPU  Name                 Persistence-M | Bus-Id          Disp.A | Memory-Usage
 Interpretation:
 
 - The Jellyfin container can see and use the P400.
-- Remaining work is inside the Jellyfin web UI: enable NVIDIA NVENC/NVDEC hardware acceleration and test a real transcode.
+
+## Jellyfin hardware transcoding status
+
+Jellyfin Playback > Transcoding settings were enabled and saved for NVIDIA NVENC/NVDEC.
+
+A forced transcode showed this in Jellyfin:
+
+```text
+Transcoding
+Framerate: 18fps
+3.0 Mbps MP4 H264 AC3
+Reason for transcoding: The video's bitrate exceeds the limit
+```
+
+Before saving the Jellyfin settings, `nvidia-smi` showed no GPU process.
+
+After saving the Jellyfin settings, `nvidia-smi` showed Jellyfin ffmpeg using the P400:
+
+```text
+GPU Memory-Usage: 91MiB / 2048MiB
+Processes:
+GPU  PID   Type   Process name                         GPU Memory
+0    6288  C      /usr/lib/jellyfin-ffmpeg/ffmpeg       86MiB
+```
+
+Interpretation:
+
+- Jellyfin hardware transcoding is confirmed working.
+- The P400 is being used by `/usr/lib/jellyfin-ffmpeg/ffmpeg` during an active transcode.
+- Remaining optional work: test a few codecs/clients, then clean up duplicate apt source warnings later.
 
 ## Next steps
 
-1. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
-2. Test playback/transcoding and watch `nvidia-smi`.
-3. Confirm `ffmpeg` or Jellyfin appears as a GPU process during transcoding.
-4. Clean up duplicate `non-free-firmware` apt warnings later.
+1. Test a few different clients and files to confirm stable playback.
+2. Keep HEVC encoding and tone mapping off for now unless there is a specific need.
+3. Clean up duplicate `non-free-firmware` apt warnings later.
+4. Move on to the next server task, likely Home Assistant OS VM migration.
 
 ## Notes
 
