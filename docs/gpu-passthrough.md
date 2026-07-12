@@ -180,22 +180,45 @@ Recommended Proxmox PCI device settings used/planned:
 | ROM-Bar | Default / checked |
 | PCI-Express | Checked if available; otherwise default |
 
-Current status from user report:
+Debian VM now sees the NVIDIA GPU with:
 
-- Debian VM now sees the NVIDIA GPU with `lspci | grep -i nvidia`.
-- NVIDIA driver is not installed yet inside Debian.
-- Next step is installing the NVIDIA driver inside Debian, then verifying with `nvidia-smi`.
+```bash
+lspci | grep -i nvidia
+```
+
+Result:
+
+```text
+00:10.0 VGA compatible controller: NVIDIA Corporation GP107GL [Quadro P400] (rev a1)
+00:10.1 Audio device: NVIDIA Corporation GP107GL High Definition Audio Controller (rev a1)
+```
+
+## NVIDIA driver status inside Debian
+
+The Debian non-free repositories were enabled so `nvidia-driver` and `firmware-misc-nonfree` could be installed.
+
+`nvidia-smi` now works inside `docker01`:
+
+```text
+NVIDIA-SMI 550.163.01             Driver Version: 550.163.01     CUDA Version: 12.4
+GPU  Name                 Persistence-M | Bus-Id          Disp.A | Memory-Usage
+0    Quadro P400                    Off | 00000000:00:10.0 Off | 2MiB / 2048MiB
+```
+
+Interpretation:
+
+- Debian owns the P400 successfully.
+- NVIDIA driver version `550.163.01` is working.
+- The next step is installing NVIDIA Container Toolkit so Docker/Jellyfin can use the GPU.
 
 ## Next steps
 
-1. Install NVIDIA driver inside Debian `docker01`.
-2. Reboot `docker01`.
-3. Confirm `nvidia-smi` works inside Debian.
-4. Install NVIDIA Container Toolkit inside Debian.
-5. Configure Docker runtime with `nvidia-ctk`.
-6. Test Docker GPU access.
-7. Update Jellyfin Docker Compose to expose the GPU to Jellyfin.
-8. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
+1. Install NVIDIA Container Toolkit inside Debian.
+2. Configure Docker runtime with `nvidia-ctk`.
+3. Restart Docker.
+4. Test Docker GPU access.
+5. Update Jellyfin Docker Compose to expose the GPU to Jellyfin.
+6. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
 
 ## Notes
 
