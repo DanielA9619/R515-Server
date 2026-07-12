@@ -285,19 +285,53 @@ caddy      caddy:latest               0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp, 
 jellyfin   jellyfin/jellyfin:latest   0.0.0.0:8096->8096/tcp
 ```
 
+Current NVIDIA-enabled Jellyfin Compose service:
+
+```yaml
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    ports:
+      - "8096:8096"
+    volumes:
+      - /srv/docker/jellyfin/config:/config
+      - /srv/docker/jellyfin/cache:/cache
+      - /mnt/storage/media:/media
+```
+
+After running `docker compose up -d jellyfin`, Jellyfin started successfully and the container can see the GPU.
+
+Test from inside the Jellyfin container:
+
+```bash
+docker exec jellyfin nvidia-smi
+```
+
+Result:
+
+```text
+NVIDIA-SMI 550.163.01             Driver Version: 550.163.01     CUDA Version: 12.4
+GPU  Name                 Persistence-M | Bus-Id          Disp.A | Memory-Usage
+0    Quadro P400                     On | 00000000:00:10.0 Off | 2MiB / 2048MiB
+```
+
 Interpretation:
 
-- Jellyfin service/container name is `jellyfin`.
-- Caddy service/container name is `caddy`.
-- The next step is backing up and editing `/srv/docker/docker-compose.yml`.
+- The Jellyfin container can see and use the P400.
+- Remaining work is inside the Jellyfin web UI: enable NVIDIA NVENC/NVDEC hardware acceleration and test a real transcode.
 
 ## Next steps
 
-1. Back up `/srv/docker/docker-compose.yml`.
-2. Update the Jellyfin service with NVIDIA runtime settings.
-3. Restart Jellyfin.
-4. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
-5. Test playback/transcoding and watch `nvidia-smi`.
+1. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
+2. Test playback/transcoding and watch `nvidia-smi`.
+3. Confirm `ffmpeg` or Jellyfin appears as a GPU process during transcoding.
+4. Clean up duplicate `non-free-firmware` apt warnings later.
 
 ## Notes
 
