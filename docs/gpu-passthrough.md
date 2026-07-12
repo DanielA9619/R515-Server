@@ -4,7 +4,7 @@ Goal: pass the NVIDIA Quadro P400 from the Proxmox host through to the Debian Do
 
 ## Current GPU detection status
 
-### Inside Debian VM `docker01`
+### Inside Debian VM `docker01` - original state
 
 Command:
 
@@ -30,7 +30,7 @@ Result:
 -bash: nvidia-smi: command not found
 ```
 
-Interpretation: Debian does not currently see the P400, and NVIDIA drivers are not installed in the VM.
+Interpretation: Debian did not originally see the P400, and NVIDIA drivers were not installed in the VM.
 
 ### On Proxmox host `r515`
 
@@ -165,20 +165,41 @@ Interpretation:
 
 - The Proxmox host is no longer using `nouveau` or `snd_hda_intel` for the P400 functions.
 - Both P400 functions are now bound to `vfio-pci`.
-- The next step is attaching the GPU to `docker01` as a PCI device.
+
+## VM attachment status
+
+The P400 was added to the `docker01` VM as a raw PCI device from the Proxmox UI.
+
+Recommended Proxmox PCI device settings used/planned:
+
+| Option | Setting |
+| --- | --- |
+| Device | `0000:01:00.0 NVIDIA GP107GL [Quadro P400]` |
+| All Functions | Checked |
+| Primary GPU | Unchecked |
+| ROM-Bar | Default / checked |
+| PCI-Express | Checked if available; otherwise default |
+
+Current status from user report:
+
+- Debian VM now sees the NVIDIA GPU with `lspci | grep -i nvidia`.
+- NVIDIA driver is not installed yet inside Debian.
+- Next step is installing the NVIDIA driver inside Debian, then verifying with `nvidia-smi`.
 
 ## Next steps
 
-1. Shut down `docker01`.
-2. Add the P400 PCI device to the `docker01` VM.
-3. Boot Debian and confirm `lspci | grep -i nvidia` sees the P400.
-4. Install NVIDIA driver and NVIDIA Container Toolkit inside Debian.
-5. Update Jellyfin Docker Compose to expose the GPU to Jellyfin.
-6. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
+1. Install NVIDIA driver inside Debian `docker01`.
+2. Reboot `docker01`.
+3. Confirm `nvidia-smi` works inside Debian.
+4. Install NVIDIA Container Toolkit inside Debian.
+5. Configure Docker runtime with `nvidia-ctk`.
+6. Test Docker GPU access.
+7. Update Jellyfin Docker Compose to expose the GPU to Jellyfin.
+8. Enable NVIDIA NVENC/NVDEC hardware acceleration in Jellyfin.
 
 ## Notes
 
 - Do not install NVIDIA drivers on the Proxmox host for this passthrough plan.
 - The Proxmox host should keep the P400 bound to `vfio-pci`.
 - The Debian VM should own the GPU after passthrough.
-- If passthrough causes boot/display trouble, revert the VFIO binding and remove the PCI device from the VM.
+- If passthrough causes boot/display trouble, remove the PCI device from the VM and revert VFIO binding if needed.
