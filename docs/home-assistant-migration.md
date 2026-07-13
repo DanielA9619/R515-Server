@@ -51,6 +51,35 @@ Starting point:
 
 These can be adjusted later depending on add-ons, history database size, and integrations.
 
+## HAOS VM created on Proxmox
+
+A dedicated Home Assistant OS VM was created on the Proxmox host `r515`.
+
+VM configuration:
+
+| Item | Value |
+| --- | --- |
+| VMID | `101` |
+| Name | `haos` |
+| HAOS image | `haos_ova-18.1.qcow2` |
+| Storage | `local-lvm` |
+| Machine | `q35` |
+| BIOS | `ovmf` / UEFI |
+| CPU | `host`, 2 cores |
+| RAM | `4096 MB` |
+| Disk | `64 GB` on `scsi0` |
+| EFI disk | `local-lvm:vm-101-disk-1`, 4 MB |
+| Network | `virtio`, bridge `vmbr0` |
+| MAC | `BC:24:11:5D:26:8C` |
+| Serial console | `serial0 socket` |
+| VGA | `serial0` |
+| Start at boot | enabled |
+| Status after creation | running |
+
+Important note: the Raspberry Pi Home Assistant is still using `192.168.10.190`, so the new HAOS VM should boot with a temporary DHCP IP first. Do not move `192.168.10.190` to the VM until the Pi is shut down or moved to a different IP.
+
+Next step: find the new VM's DHCP IP, open Home Assistant on port `8123`, and complete the initial setup or restore path.
+
 ## Option A: Backup/restore migration
 
 Use this path only if backup starts working cleanly.
