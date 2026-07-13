@@ -42,6 +42,31 @@ Do not forward Jellyfin `8096` publicly while Caddy is working.
 - Active Docker Compose file: `/srv/docker/docker-compose.yml`
 - Config backups stored under `/mnt/storage/backups`
 
+## Debian apt sources
+
+Apt duplicate `non-free-firmware` warnings were cleaned up.
+
+Current state:
+
+- Main Debian repositories are configured in `/etc/apt/sources.list`.
+- Debian components enabled: `main contrib non-free non-free-firmware`.
+- Docker repository remains in `/etc/apt/sources.list.d/docker.list`.
+- NVIDIA Container Toolkit repository remains in `/etc/apt/sources.list.d/nvidia-container-toolkit.list`.
+- Old duplicate file was moved to `/etc/apt/sources.list.d/disabled/nonfree.list.disabled`.
+- `sudo apt update` completed without duplicate target warnings after the cleanup.
+- `apt update` reported `36 packages can be upgraded`.
+
+Current `/etc/apt/sources.list` active entries:
+
+```text
+deb http://deb.debian.org/debian/ trixie main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian/ trixie main contrib non-free non-free-firmware
+deb http://security.debian.org/debian-security trixie-security main contrib non-free non-free-firmware
+deb-src http://security.debian.org/debian-security trixie-security main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian/ trixie-updates main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian/ trixie-updates main contrib non-free non-free-firmware
+```
+
 ## Storage
 
 3TB HDD is mounted in Debian at:
@@ -154,6 +179,7 @@ Monitors added:
 | Proxmox host | Ping | `192.168.10.50` |
 | Debian Docker VM | Ping | `192.168.10.135` |
 | Gateway / UDM Pro | Ping | `192.168.10.1` |
+| Portainer | HTTP(s) | `https://192.168.10.135:9443` |
 
 ## Portainer
 
@@ -172,6 +198,7 @@ Current status:
 - Portainer has access to the local Docker environment through `/var/run/docker.sock`.
 - Keep Portainer LAN-only. Do not expose port `9443` to the public internet.
 - Prefer editing `/srv/docker/docker-compose.yml` directly and using Portainer mostly for viewing status/logs unless intentionally changing the management workflow.
+- `hello-world` test container was identified as safe to remove; active service containers are `caddy`, `jellyfin`, `portainer`, and `uptime-kuma`.
 
 ## Jellyfin
 
@@ -314,6 +341,7 @@ Current known backups:
 - `/etc/samba/smb.conf`
 - `/mnt/storage/backups/2026-07-13/srv-docker-after-p400.tar.gz` - 3.3 GB Docker/Jellyfin/Caddy config backup created after P400 hardware transcoding was confirmed.
 - Fresh Home Assistant backup created on the new HAOS VM after HACS, Matter Server, Terminal & SSH, Studio Code Server, Google Drive Backup, and UniFi were rebuilt.
+- `/etc/apt/sources.list` backup created before apt source cleanup.
 
 Still needed:
 
