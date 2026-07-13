@@ -78,7 +78,7 @@ Current running containers:
 | `jellyfin` | `jellyfin/jellyfin:latest` | Media server, port `8096` |
 | `caddy` | `caddy:latest` | Reverse proxy, ports `80` and `443` |
 
-Current Compose file before NVIDIA runtime edit:
+Current NVIDIA-enabled Jellyfin Compose service:
 
 ```yaml
 services:
@@ -86,6 +86,10 @@ services:
     image: jellyfin/jellyfin:latest
     container_name: jellyfin
     restart: unless-stopped
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
     ports:
       - "8096:8096"
     volumes:
@@ -207,7 +211,9 @@ Current status:
 - Debian `docker01` sees the P400.
 - NVIDIA driver works inside Debian.
 - NVIDIA Container Toolkit works with Docker using the explicit NVIDIA runtime.
-- Next step is adding NVIDIA runtime settings to the Jellyfin Compose service.
+- Jellyfin Compose uses `runtime: nvidia` and NVIDIA environment variables.
+- The Jellyfin container can run `nvidia-smi`.
+- Hardware transcoding is confirmed working: `/usr/lib/jellyfin-ffmpeg/ffmpeg` appeared in `nvidia-smi` during a forced transcode, using about 86 MiB of GPU memory.
 
 Working Debian `nvidia-smi` result:
 
@@ -227,12 +233,24 @@ docker run --rm \
   nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 ```
 
+Confirmed Jellyfin transcode GPU process:
+
+```text
+/usr/lib/jellyfin-ffmpeg/ffmpeg
+GPU memory: about 86 MiB
+```
+
 ## Backups
 
 Current known backups:
 
 - `/srv/docker`
 - `/etc/samba/smb.conf`
+- `/mnt/storage/backups/2026-07-13/srv-docker-after-p400.tar.gz` - 3.3 GB Docker/Jellyfin/Caddy config backup created after P400 hardware transcoding was confirmed.
+
+Still needed:
+
+- Copy `/etc/samba/smb.conf` into `/mnt/storage/backups/2026-07-13/smb-after-p400.conf` if it was not created yet.
 
 Recommended next backup improvement:
 
