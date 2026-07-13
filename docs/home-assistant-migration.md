@@ -96,7 +96,21 @@ Current status:
 - New HAOS VM boots successfully.
 - Home Assistant onboarding completed with a new account.
 - User is inside the fresh Home Assistant dashboard.
-- Next step is clean rebuild of needed integrations/add-ons, while keeping the Raspberry Pi Home Assistant available as fallback.
+- Clean rebuild path chosen instead of fighting the Raspberry Pi backup.
+- The Raspberry Pi Home Assistant should remain available as fallback until the VM is stable.
+
+## Rebuilt add-ons and integrations
+
+Completed on the fresh HAOS VM:
+
+- HACS installed.
+- Matter Server installed.
+- Terminal & SSH installed.
+- Studio Code Server installed.
+- Home Assistant Google Drive Backup installed.
+- UniFi Network integration/add-on work completed by user.
+
+Next immediate step: create a fresh Home Assistant backup from the new HAOS VM before changing IPs or shutting down the Raspberry Pi.
 
 ## Option A: Backup/restore migration
 
@@ -174,11 +188,12 @@ Recommended order:
 
 ### 4. Cutover
 
-1. Shut down the Raspberry Pi Home Assistant.
-2. Keep the Raspberry Pi untouched for several days as a fallback.
-3. Update bookmarks, mobile apps, dashboards, and anything else pointing to the old IP.
-4. Confirm remote access works on the new VM.
-5. Once the new VM is stable, make a fresh HAOS backup immediately.
+1. Make a fresh backup of the new HAOS VM.
+2. Shut down the Raspberry Pi Home Assistant.
+3. Keep the Raspberry Pi untouched for several days as a fallback.
+4. Update bookmarks, mobile apps, dashboards, and anything else pointing to the old IP.
+5. Confirm remote access works on the new VM.
+6. Once the new VM is stable, make another fresh HAOS backup.
 
 ## Open details to fill in
 
