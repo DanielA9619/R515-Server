@@ -75,11 +75,16 @@ VM configuration:
 | VGA | `serial0` |
 | Start at boot | enabled |
 | Status after creation | running |
-| Temporary DHCP IP | `192.168.10.127` |
+| Temporary/current DHCP IP | `192.168.10.127` |
 
 Guest-agent network check showed the LAN interface `enp6s18` with MAC `bc:24:11:5d:26:8c` and IPv4 address `192.168.10.127/24`.
 
-Important note: the Raspberry Pi Home Assistant is still using `192.168.10.190`, so the new HAOS VM should use the temporary DHCP IP first. Do not move `192.168.10.190` to the VM until the Pi is shut down or moved to a different IP.
+Important IP decision:
+
+- The new HAOS VM will **not** be moved to the old Raspberry Pi IP yet.
+- Keep the new HAOS VM at `192.168.10.127` and reserve that IP in UniFi.
+- Keep the Raspberry Pi Home Assistant at `192.168.10.190` as a fallback for now.
+- Only move the VM to `192.168.10.190` later if there is a clear reason, such as old phone apps, dashboards, tablets, or automations hardcoded to the old IP.
 
 ## Fresh HAOS setup status
 
@@ -109,8 +114,9 @@ Completed on the fresh HAOS VM:
 - Studio Code Server installed.
 - Home Assistant Google Drive Backup installed.
 - UniFi Network integration/add-on work completed by user.
+- Fresh Home Assistant backup made after installing core add-ons.
 
-Next immediate step: create a fresh Home Assistant backup from the new HAOS VM before changing IPs or shutting down the Raspberry Pi.
+Next immediate step: reserve the new HAOS VM's current IP `192.168.10.127` in UniFi, then test integrations/devices before retiring the Raspberry Pi.
 
 ## Option A: Backup/restore migration
 
@@ -189,9 +195,9 @@ Recommended order:
 ### 4. Cutover
 
 1. Make a fresh backup of the new HAOS VM.
-2. Shut down the Raspberry Pi Home Assistant.
-3. Keep the Raspberry Pi untouched for several days as a fallback.
-4. Update bookmarks, mobile apps, dashboards, and anything else pointing to the old IP.
+2. Keep the Raspberry Pi Home Assistant running or powered off but untouched as a fallback.
+3. Keep the new HAOS VM at `192.168.10.127` unless there is a reason to reuse `192.168.10.190`.
+4. Update bookmarks, mobile apps, dashboards, and anything else that should use the new VM.
 5. Confirm remote access works on the new VM.
 6. Once the new VM is stable, make another fresh HAOS backup.
 
