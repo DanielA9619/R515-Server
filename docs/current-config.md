@@ -78,8 +78,9 @@ Current running containers:
 | `jellyfin` | `jellyfin/jellyfin:latest` | Media server, port `8096`; NVIDIA runtime enabled |
 | `caddy` | `caddy:latest` | Reverse proxy, ports `80` and `443` |
 | `uptime-kuma` | `louislam/uptime-kuma:2` | Monitoring dashboard, port `3001` |
+| `portainer` | `portainer/portainer-ce:lts` | Docker management UI, local HTTPS port `9443` |
 
-Current NVIDIA-enabled Jellyfin and Uptime Kuma Compose services:
+Current Compose services:
 
 ```yaml
 services:
@@ -118,6 +119,16 @@ services:
       - "3001:3001"
     volumes:
       - /srv/docker/uptime-kuma/data:/app/data
+
+  portainer:
+    image: portainer/portainer-ce:lts
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /srv/docker/portainer/data:/data
 ```
 
 ## Uptime Kuma
@@ -143,6 +154,24 @@ Monitors added:
 | Proxmox host | Ping | `192.168.10.50` |
 | Debian Docker VM | Ping | `192.168.10.135` |
 | Gateway / UDM Pro | Ping | `192.168.10.1` |
+
+## Portainer
+
+Portainer runs in Docker on `docker01`.
+
+Access URL:
+
+```text
+https://192.168.10.135:9443
+```
+
+Current status:
+
+- Initial setup is complete.
+- User is signed into the Portainer dashboard.
+- Portainer has access to the local Docker environment through `/var/run/docker.sock`.
+- Keep Portainer LAN-only. Do not expose port `9443` to the public internet.
+- Prefer editing `/srv/docker/docker-compose.yml` directly and using Portainer mostly for viewing status/logs unless intentionally changing the management workflow.
 
 ## Jellyfin
 
