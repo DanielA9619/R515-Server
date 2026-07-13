@@ -81,7 +81,22 @@ Guest-agent network check showed the LAN interface `enp6s18` with MAC `bc:24:11:
 
 Important note: the Raspberry Pi Home Assistant is still using `192.168.10.190`, so the new HAOS VM should use the temporary DHCP IP first. Do not move `192.168.10.190` to the VM until the Pi is shut down or moved to a different IP.
 
-Next step: open Home Assistant at `http://192.168.10.127:8123` and complete the initial setup or restore path.
+## Fresh HAOS setup status
+
+The new HAOS VM was opened at:
+
+```text
+http://192.168.10.127:8123
+```
+
+A new Home Assistant account was created and the fresh dashboard is accessible.
+
+Current status:
+
+- New HAOS VM boots successfully.
+- Home Assistant onboarding completed with a new account.
+- User is inside the fresh Home Assistant dashboard.
+- Next step is clean rebuild of needed integrations/add-ons, while keeping the Raspberry Pi Home Assistant available as fallback.
 
 ## Option A: Backup/restore migration
 
