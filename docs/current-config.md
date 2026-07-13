@@ -132,7 +132,7 @@ http://192.168.10.135:3001
 
 Initial setup was completed with Embedded MariaDB selected.
 
-Recommended monitors to add:
+Monitors added:
 
 | Monitor | Type | Target |
 | --- | --- | --- |
