@@ -31,6 +31,7 @@ Confirmed:
 - qBittorrent Web UI password was changed from the temporary/default password.
 - qBittorrent download paths were confirmed in the Web UI.
 - Uptime Kuma qBittorrent monitor was added/confirmed by the user.
+- Backup was completed after qBittorrent + Mullvad/Gluetun was confirmed working.
 
 Example successful checks:
 
@@ -152,6 +153,16 @@ docker run --rm --network=container:gluetun busybox nslookup cloudflare.com 127.
 
 ```bash
 docker run --rm --network=container:gluetun curlimages/curl:latest -s https://ifconfig.me && echo
+```
+
+## Backup checkpoint
+
+Backup completed after qBittorrent + Mullvad/Gluetun was working.
+
+Expected backup filename:
+
+```text
+/mnt/storage/backups/<date>/srv-docker-after-qbit-vpn.tar.gz
 ```
 
 ## Next planned media stack
