@@ -22,59 +22,72 @@ This is the current planned build order for the R515 home server.
 - NVIDIA driver and NVIDIA Container Toolkit installed
 - Jellyfin Compose configured with the NVIDIA runtime
 - Jellyfin hardware transcoding confirmed with `jellyfin-ffmpeg` visible in `nvidia-smi`
+- Home Assistant OS VM created in Proxmox
+- New HAOS VM is reachable at `192.168.10.127`
+- HACS, Matter Server, Terminal & SSH, Studio Code Server, Google Drive Backup, and UniFi work completed on new HAOS VM
+- Home Assistant migration paused safely while Raspberry Pi remains fallback
+- Portainer installed
+- Uptime Kuma installed
+- Uptime Kuma monitors added for key services
+- qBittorrent installed
+- Mullvad/Gluetun configured and confirmed healthy
+- qBittorrent routed through Gluetun/Mullvad
+- qBittorrent download paths configured
+- qBittorrent monitor added in Uptime Kuma
+- Fresh backup completed after qBittorrent + VPN was confirmed working
+- Prowlarr installed
+- Prowlarr authentication enabled
+- qBittorrent added to Prowlarr as download client
+- Radarr installed for movies
+- Radarr authentication enabled
+- Radarr root folder configured as `/movies`
+- qBittorrent added to Radarr as download client using host `gluetun` and category `radarr`
+- Prowlarr connected to Radarr
+- Radarr monitor added in Uptime Kuma
+- Sonarr installed for TV
+- Sonarr authentication enabled
+- Sonarr root folder configured as `/tv`
+- qBittorrent added to Sonarr as download client using host `gluetun` and category `sonarr`
+- Prowlarr connected to Sonarr
+- Sonarr monitor added in Uptime Kuma
 
 ## Immediate next step
 
-### 1. Make a fresh post-GPU backup
+### 1. Configure and test indexers
 
-Create and verify a new backup of the currently working Docker/Jellyfin/Caddy configuration before starting the next major service.
+Use Prowlarr to add legal/private indexers, then sync them to Radarr and Sonarr.
 
-Recommended backup targets:
+After indexers are added:
+
+1. Test search inside Prowlarr.
+2. Confirm Radarr sees synced indexers.
+3. Confirm Sonarr sees synced indexers.
+4. Run one small controlled Radarr movie test.
+5. Run one small controlled Sonarr TV test.
+6. Confirm qBittorrent downloads to `/mnt/storage/downloads`.
+7. Confirm Radarr/Sonarr import completed files into Jellyfin folders.
+8. Confirm Jellyfin sees the imported media after library scan.
+
+Expected flow:
 
 ```text
-/srv/docker
-/etc/samba/smb.conf
+Prowlarr -> Radarr/Sonarr -> qBittorrent through Gluetun -> /mnt/storage/downloads -> /mnt/storage/media -> Jellyfin
 ```
 
-Store the backup under:
+## Next major tasks
 
-```text
-/mnt/storage/backups
-```
+### 2. Add Jellyseerr or Overseerr
 
-A later improvement should copy backups off the R515 so they are not stored only on the same physical server.
+Purpose: provide a nicer request interface for movies and TV.
 
-## Next major task
+Recommended approach:
 
-### 2. Home Assistant migration
+- Install only after Radarr/Sonarr/Prowlarr/qBittorrent are tested.
+- Keep LAN-only at first.
+- Connect it to Radarr and Sonarr.
+- Later decide whether trusted users should get access.
 
-Move Home Assistant from the Raspberry Pi to a dedicated Home Assistant OS VM in Proxmox.
-
-Current preferred approach because the existing installation is small and its backup has been unreliable:
-
-1. Record or screenshot integrations, add-ons, dashboards, automations, scenes, scripts, helpers, and remote-access settings.
-2. Create a fresh HAOS VM in Proxmox.
-3. Use 2 CPU cores, 4 GB RAM, and a 64 GB disk.
-4. Connect it to the bridged LAN.
-5. Reserve its IP in UniFi.
-6. Rebuild HACS, Matter Server, and UniFi Network manually.
-7. Keep the Raspberry Pi unchanged until the VM has been tested for several days.
-
-## Docker services to add after Home Assistant
-
-### 3. Portainer
-
-Purpose: easier Docker/container management.
-
-Recommended access: local network only.
-
-### 4. Uptime Kuma
-
-Purpose: monitoring dashboard for Jellyfin, Caddy, Home Assistant, DuckDNS/domain, and other services.
-
-Recommended access: local network only unless remote monitoring is intentionally configured later.
-
-### 5. AdGuard Home
+### 3. Add AdGuard Home
 
 Purpose: network DNS filtering/ad blocking.
 
@@ -83,8 +96,30 @@ Notes:
 - AdGuard Home is free and open-source.
 - It can replace or compete with Pi-hole.
 - Only one DNS/ad-blocking service should be primary at a time.
+- Do not change whole-network DNS until it has been tested from one device first.
 
-### 6. Immich
+### 4. Improve backups
+
+Current backups exist, but the next improvement is an actual repeatable backup plan.
+
+Recommended backup targets:
+
+```text
+/srv/docker
+/etc/samba/smb.conf
+Home Assistant backups
+Important media/config metadata
+```
+
+Store backups under:
+
+```text
+/mnt/storage/backups
+```
+
+A later improvement should copy backups off the R515 so they are not stored only on the same physical server.
+
+### 5. Add Immich
 
 Purpose: self-hosted photo backup and photo library.
 
@@ -94,31 +129,16 @@ Important before installing:
 - Immich changes quickly, so keep the stack documented and backed up.
 - Do not expose publicly until authentication, backups, and updates are understood.
 
-### 7. Media automation stack
+### 6. Finish Home Assistant migration
 
-Planned services:
+Home Assistant is currently in a safe paused state.
 
-- qBittorrent
-- Radarr
-- Sonarr
-- Prowlarr
-- Jellyseerr or Overseerr
+Current approach:
 
-Purpose: allow approved movie and TV requests to be searched, downloaded, imported into the correct media folders, and detected by Jellyfin automatically.
-
-Recommended paths:
-
-```text
-/mnt/storage/downloads
-/mnt/storage/media/movies
-/mnt/storage/media/tv
-```
-
-Security notes:
-
-- Keep the qBittorrent web UI local-only unless protected by VPN or another secure access method.
-- Use approved users and request limits in Jellyseerr/Overseerr.
-- Add services one at a time and test each stage before continuing.
+- Keep Raspberry Pi Home Assistant unchanged at `192.168.10.190` for now.
+- Keep new HAOS VM at `192.168.10.127`.
+- Do not move the new VM to `192.168.10.190` until the new VM is stable and the Pi fallback is no longer needed.
+- Later decide whether to keep `192.168.10.127` permanently or move HAOS to `192.168.10.190`.
 
 ## Future project: SMS request and server-control assistant
 
@@ -174,13 +194,6 @@ Safety and permissions:
 - Keep an audit log of senders, commands, actions, and results.
 - Use least-privilege API credentials for Jellyfin, Home Assistant, and request services.
 
-Likely implementation options:
-
-- Twilio or another SMS API provider for the phone number and webhook.
-- A small Python service running in Docker.
-- Home Assistant REST/WebSocket API for approved smart-home actions.
-- Jellyseerr/Overseerr API for media requests.
-
 Priority: low. Build only after the core server, backups, Home Assistant, monitoring, and media automation stack are stable.
 
 ## Later possibilities
@@ -190,3 +203,4 @@ Priority: low. Build only after the core server, backups, Home Assistant, monito
 - Backup automation
 - Off-server backup destination
 - UPS monitoring
+- Dashboard/homepage
