@@ -20,7 +20,7 @@ Last updated from chat notes during the R515 setup.
 | `80` | TCP | `192.168.10.135:80` |
 | `443` | TCP | `192.168.10.135:443` |
 
-Do not forward Jellyfin `8096` publicly while Caddy is working.
+Do not forward Jellyfin `8096`, qBittorrent `8080`, qBittorrent `6881`, Uptime Kuma `3001`, or Portainer `9443` publicly unless intentionally redesigning remote access.
 
 ## Proxmox
 
@@ -88,6 +88,14 @@ Known folders:
 /mnt/storage/shared
 ```
 
+qBittorrent-related folders:
+
+```text
+/mnt/storage/downloads/qbittorrent
+/mnt/storage/downloads/incomplete
+/mnt/storage/downloads/complete
+```
+
 ## Docker Compose layout
 
 Active Compose file:
@@ -104,6 +112,7 @@ Current running containers:
 | `caddy` | `caddy:latest` | Reverse proxy, ports `80` and `443` |
 | `uptime-kuma` | `louislam/uptime-kuma:2` | Monitoring dashboard, port `3001` |
 | `portainer` | `portainer/portainer-ce:lts` | Docker management UI, local HTTPS port `9443` |
+| `qbittorrent` | `lscr.io/linuxserver/qbittorrent:latest` | Torrent client, local Web UI port `8080`; torrent port `6881` |
 
 Current Compose services:
 
@@ -154,6 +163,25 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /srv/docker/portainer/data:/data
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Denver
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
+    ports:
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    volumes:
+      - /srv/docker/qbittorrent/config:/config
+      - /mnt/storage/downloads:/downloads
+    stop_grace_period: "30s"
 ```
 
 ## Uptime Kuma
@@ -181,6 +209,12 @@ Monitors added:
 | Gateway / UDM Pro | Ping | `192.168.10.1` |
 | Portainer | HTTP(s) | `https://192.168.10.135:9443` |
 
+Recommended next monitor:
+
+| Monitor | Type | Target |
+| --- | --- | --- |
+| qBittorrent | HTTP(s) | `http://192.168.10.135:8080` |
+
 ## Portainer
 
 Portainer runs in Docker on `docker01`.
@@ -198,7 +232,48 @@ Current status:
 - Portainer has access to the local Docker environment through `/var/run/docker.sock`.
 - Keep Portainer LAN-only. Do not expose port `9443` to the public internet.
 - Prefer editing `/srv/docker/docker-compose.yml` directly and using Portainer mostly for viewing status/logs unless intentionally changing the management workflow.
-- `hello-world` test container was identified as safe to remove; active service containers are `caddy`, `jellyfin`, `portainer`, and `uptime-kuma`.
+- `hello-world` test container was identified as safe to remove; active service containers are `caddy`, `jellyfin`, `portainer`, `uptime-kuma`, and `qbittorrent`.
+
+## qBittorrent
+
+qBittorrent runs in Docker on `docker01`.
+
+Access URL:
+
+```text
+http://192.168.10.135:8080
+```
+
+Current status:
+
+- qBittorrent container was added to `/srv/docker/docker-compose.yml`.
+- Web UI login was completed.
+- Default/temporary admin password was changed.
+- Web UI should remain LAN-only.
+- Do not expose qBittorrent Web UI port `8080` publicly.
+- Do not expose torrenting port `6881` publicly unless intentionally setting up router port forwarding for torrent connectivity.
+
+Host paths:
+
+```text
+/srv/docker/qbittorrent/config
+/mnt/storage/downloads
+```
+
+Container paths:
+
+```text
+/config
+/downloads
+```
+
+Recommended qBittorrent internal download paths:
+
+```text
+Default save path: /downloads/complete
+Incomplete path:   /downloads/incomplete
+Manual imports:    /downloads/qbittorrent or /downloads/complete
+```
 
 ## Jellyfin
 
@@ -340,15 +415,14 @@ Current known backups:
 - `/srv/docker`
 - `/etc/samba/smb.conf`
 - `/mnt/storage/backups/2026-07-13/srv-docker-after-p400.tar.gz` - 3.3 GB Docker/Jellyfin/Caddy config backup created after P400 hardware transcoding was confirmed.
+- `/mnt/storage/backups/2026-07-13/srv-docker-after-portainer-kuma.tar.gz` - 3.3 GB Docker config backup created after Uptime Kuma, Portainer, and apt cleanup.
+- `/mnt/storage/backups/2026-07-13/sources.list-after-cleanup`
+- `/mnt/storage/backups/2026-07-13/sources.list.d-after-cleanup`
 - Fresh Home Assistant backup created on the new HAOS VM after HACS, Matter Server, Terminal & SSH, Studio Code Server, Google Drive Backup, and UniFi were rebuilt.
-- `/etc/apt/sources.list` backup created before apt source cleanup.
 
 Still needed:
 
-- Copy `/etc/samba/smb.conf` into `/mnt/storage/backups/2026-07-13/smb-after-p400.conf` if it was not created yet.
-
-Recommended next backup improvement:
-
+- Make a new Docker config backup after qBittorrent settings are finalized.
 - Add a repeatable backup script.
 - Copy backups off the same 3TB HDD eventually.
 - Keep at least one backup outside the R515.
