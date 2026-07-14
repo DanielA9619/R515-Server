@@ -28,6 +28,9 @@ Confirmed:
 - VPN traffic through Gluetun successfully pinged `1.1.1.1` with `0% packet loss`.
 - DNS through Gluetun successfully resolved `cloudflare.com` using Gluetun's local DNS server at `127.0.0.1`.
 - Public IP test through Gluetun returned `155.2.191.136`, indicating traffic is exiting through Mullvad rather than the home IP.
+- qBittorrent Web UI password was changed from the temporary/default password.
+- qBittorrent download paths were confirmed in the Web UI.
+- Uptime Kuma qBittorrent monitor was added/confirmed by the user.
 
 Example successful checks:
 
@@ -150,3 +153,15 @@ docker run --rm --network=container:gluetun busybox nslookup cloudflare.com 127.
 ```bash
 docker run --rm --network=container:gluetun curlimages/curl:latest -s https://ifconfig.me && echo
 ```
+
+## Next planned media stack
+
+Recommended next tools:
+
+```text
+Prowlarr -> indexer manager
+Radarr   -> movies
+Sonarr   -> TV
+```
+
+These should be installed only after confirming the qBittorrent VPN path is still healthy.
