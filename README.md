@@ -12,6 +12,14 @@ The server is live and currently running:
 - Caddy reverse proxy in Docker
 - Samba file share from Debian to Windows
 - DuckDNS updater on Debian
+- NVIDIA Quadro P400 passthrough for Jellyfin hardware transcoding
+- Home Assistant OS VM in Proxmox, currently paused/safe while Raspberry Pi remains as fallback
+- Portainer for Docker management
+- Uptime Kuma for monitoring
+- qBittorrent routed through Gluetun/Mullvad
+- Prowlarr for indexer management
+- Radarr for movie automation
+- Sonarr for TV automation
 
 Jellyfin works locally and remotely through:
 
@@ -26,8 +34,10 @@ https://mediahubdaniel.duckdns.org
 | Gateway / Router | `192.168.10.1` |
 | Proxmox Host | `192.168.10.50` |
 | Debian Docker VM `docker01` | `192.168.10.135` |
+| HAOS VM | `192.168.10.127` |
+| Raspberry Pi Home Assistant fallback | `192.168.10.190` |
 | Jellyfin Domain | `mediahubdaniel.duckdns.org` |
-| Current DuckDNS-resolved public IP | `166.70.251.126` |
+| DuckDNS public IP observed during setup | `166.70.251.126` |
 
 `192.168.10.135` is reserved in UniFi for the Debian Docker VM.
 
@@ -35,8 +45,8 @@ https://mediahubdaniel.duckdns.org
 
 - Dell PowerEdge R515
 - Proxmox installed on system SSD
-- 3TB HDD attached to the Debian VM as `/dev/sdb`
-- NVIDIA Quadro P400 detected by the system
+- 3TB HDD attached to the Debian VM and mounted at `/mnt/storage`
+- NVIDIA Quadro P400 passed through to `docker01`
 - PCIe riser slot was cut open-ended so the P400 physically fits
 
 ## Virtualization Layout
@@ -45,22 +55,28 @@ https://mediahubdaniel.duckdns.org
 |---|---|---|
 | Bare metal | Dell PowerEdge R515 | Physical server |
 | Hypervisor | Proxmox | VM host |
-| VM | `docker01` | Debian VM for Docker, Jellyfin, Caddy, Samba, future services |
-| Future VM | HAOS VM | Home Assistant OS migration target |
+| VM | `docker01` | Debian VM for Docker, Jellyfin, Caddy, Samba, monitoring, and media automation |
+| VM | `haos` | Home Assistant OS VM, currently kept separate while Raspberry Pi remains fallback |
 
 ## Current Docker Services
 
 - Jellyfin
 - Caddy
-
-Planned Docker services:
-
 - Portainer
 - Uptime Kuma
+- Gluetun
+- qBittorrent
+- Prowlarr
+- Radarr
+- Sonarr
+
+Planned / pending Docker services:
+
 - AdGuard Home
 - Immich
-- qBittorrent
-- Possibly Radarr / Sonarr / Prowlarr later
+- Jellyseerr or Overseerr
+- Backup automation
+- Optional dashboard/homepage
 
 ## Documentation
 
@@ -68,20 +84,35 @@ Planned Docker services:
 - [`docs/roadmap.md`](docs/roadmap.md) — service build order and priorities
 - [`docs/home-assistant-migration.md`](docs/home-assistant-migration.md) — HAOS VM migration plan
 - [`docs/open-questions.md`](docs/open-questions.md) — info still needed
+- [`docs/qbittorrent-vpn.md`](docs/qbittorrent-vpn.md) — qBittorrent + Mullvad/Gluetun setup notes
+
+## Completed Major Milestones
+
+- Jellyfin local and remote access working through Caddy
+- Samba share working from Windows to `/mnt/storage`
+- Quadro P400 passthrough complete
+- Jellyfin hardware transcoding confirmed
+- Portainer installed
+- Uptime Kuma installed with monitors
+- qBittorrent installed and routed through Gluetun/Mullvad
+- Prowlarr installed and connected to qBittorrent
+- Radarr installed and connected to qBittorrent/Prowlarr
+- Sonarr installed and connected to qBittorrent/Prowlarr
+- Fresh backup completed after qBittorrent + VPN setup
 
 ## Current Priorities
 
-1. Migrate Home Assistant from Raspberry Pi to a dedicated HAOS VM.
-2. Add Portainer for Docker management.
-3. Add Uptime Kuma for monitoring.
-4. Add AdGuard Home for DNS/ad blocking.
-5. Add Immich for photo backup and management.
-6. Add qBittorrent with access to the Jellyfin media storage.
-7. Configure Quadro P400 hardware transcoding for Jellyfin.
+1. Configure/test Prowlarr indexers and do a small Radarr/Sonarr search/import test.
+2. Add Jellyseerr or Overseerr for a nicer request front end.
+3. Add AdGuard Home for DNS/ad blocking.
+4. Build a safer backup plan, including off-server backups.
+5. Add Immich for photo backup and management after backups are ready.
+6. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
 
 ## Important Safety Notes
 
-- Do not commit DuckDNS tokens, passwords, API keys, or private keys.
+- Do not commit DuckDNS tokens, passwords, API keys, Mullvad keys, or private keys.
 - Do not expose Jellyfin port `8096` directly to the internet while Caddy is working.
-- Public access should go through Caddy on ports `80` and `443` only.
-- Keep Home Assistant and admin dashboards private unless there is a specific reason to expose them.
+- Public Jellyfin access should go through Caddy on ports `80` and `443` only.
+- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Portainer, Uptime Kuma, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
+- Keep qBittorrent behind Gluetun/Mullvad.
