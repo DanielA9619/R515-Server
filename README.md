@@ -20,6 +20,7 @@ The server is live and currently running:
 - Prowlarr for indexer management
 - Radarr for movie automation
 - Sonarr for TV automation
+- AdGuard Home for DNS filtering/ad blocking, currently tested manually from one iPhone before whole-network rollout
 
 Jellyfin works locally and remotely through:
 
@@ -55,7 +56,7 @@ https://mediahubdaniel.duckdns.org
 |---|---|---|
 | Bare metal | Dell PowerEdge R515 | Physical server |
 | Hypervisor | Proxmox | VM host |
-| VM | `docker01` | Debian VM for Docker, Jellyfin, Caddy, Samba, monitoring, and media automation |
+| VM | `docker01` | Debian VM for Docker, Jellyfin, Caddy, Samba, monitoring, DNS filtering, and media automation |
 | VM | `haos` | Home Assistant OS VM, currently kept separate while Raspberry Pi remains fallback |
 
 ## Current Docker Services
@@ -69,10 +70,10 @@ https://mediahubdaniel.duckdns.org
 - Prowlarr
 - Radarr
 - Sonarr
+- AdGuard Home
 
 Planned / pending Docker services:
 
-- AdGuard Home
 - Immich
 - Jellyseerr or Overseerr
 - Backup automation
@@ -85,6 +86,7 @@ Planned / pending Docker services:
 - [`docs/home-assistant-migration.md`](docs/home-assistant-migration.md) — HAOS VM migration plan
 - [`docs/open-questions.md`](docs/open-questions.md) — info still needed
 - [`docs/qbittorrent-vpn.md`](docs/qbittorrent-vpn.md) — qBittorrent + Mullvad/Gluetun setup notes
+- [`docs/adguard-home.md`](docs/adguard-home.md) — AdGuard Home setup and safe rollout notes
 
 ## Completed Major Milestones
 
@@ -98,13 +100,14 @@ Planned / pending Docker services:
 - Prowlarr installed and connected to qBittorrent
 - Radarr installed and connected to qBittorrent/Prowlarr
 - Sonarr installed and connected to qBittorrent/Prowlarr
+- AdGuard Home installed and verified from the Debian VM plus one iPhone test client
 - Fresh backup completed after qBittorrent + VPN setup
 
 ## Current Priorities
 
-1. Pause Prowlarr indexer/tracker testing until legal/private trackers are available.
-2. Add AdGuard Home for DNS/ad blocking, tested on one device before changing whole-network DNS.
-3. Build a safer backup plan, including off-server backups.
+1. Continue AdGuard Home testing on one device, then decide whether to point UniFi DHCP/DNS to AdGuard for the whole LAN.
+2. Build a safer backup plan, including off-server backups.
+3. Pause Prowlarr indexer/tracker testing until legal/private trackers are available.
 4. Add Jellyseerr or Overseerr after indexers are available and Radarr/Sonarr search/import has been tested.
 5. Add Immich for photo backup and management after backups are ready.
 6. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
@@ -114,5 +117,6 @@ Planned / pending Docker services:
 - Do not commit DuckDNS tokens, passwords, API keys, Mullvad keys, or private keys.
 - Do not expose Jellyfin port `8096` directly to the internet while Caddy is working.
 - Public Jellyfin access should go through Caddy on ports `80` and `443` only.
-- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Portainer, Uptime Kuma, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
+- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Portainer, Uptime Kuma, AdGuard Home, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
 - Keep qBittorrent behind Gluetun/Mullvad.
+- Do not switch whole-network DNS to AdGuard until it has been tested on one device long enough to catch breakage.
