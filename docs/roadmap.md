@@ -51,22 +51,25 @@ This is the current planned build order for the R515 home server.
 - Prowlarr connected to Sonarr
 - Sonarr monitor added in Uptime Kuma
 
-## Immediate next step
+## Paused
 
-### 1. Configure and test indexers
+### Prowlarr indexer/tracker testing
 
-Use Prowlarr to add legal/private indexers, then sync them to Radarr and Sonarr.
+Prowlarr, Radarr, Sonarr, qBittorrent, and Gluetun are installed and connected, but there are no trackers/indexers available yet.
 
-After indexers are added:
+Come back to this when legal/private indexers are available.
 
-1. Test search inside Prowlarr.
-2. Confirm Radarr sees synced indexers.
-3. Confirm Sonarr sees synced indexers.
-4. Run one small controlled Radarr movie test.
-5. Run one small controlled Sonarr TV test.
-6. Confirm qBittorrent downloads to `/mnt/storage/downloads`.
-7. Confirm Radarr/Sonarr import completed files into Jellyfin folders.
-8. Confirm Jellyfin sees the imported media after library scan.
+When indexers are added later:
+
+1. Add indexers in Prowlarr.
+2. Test search inside Prowlarr.
+3. Confirm Radarr sees synced indexers.
+4. Confirm Sonarr sees synced indexers.
+5. Run one small controlled Radarr movie test.
+6. Run one small controlled Sonarr TV test.
+7. Confirm qBittorrent downloads to `/mnt/storage/downloads`.
+8. Confirm Radarr/Sonarr import completed files into Jellyfin folders.
+9. Confirm Jellyfin sees the imported media after library scan.
 
 Expected flow:
 
@@ -74,31 +77,29 @@ Expected flow:
 Prowlarr -> Radarr/Sonarr -> qBittorrent through Gluetun -> /mnt/storage/downloads -> /mnt/storage/media -> Jellyfin
 ```
 
-## Next major tasks
+## Immediate next step
 
-### 2. Add Jellyseerr or Overseerr
+### 1. Add AdGuard Home, but test safely
 
-Purpose: provide a nicer request interface for movies and TV.
+Purpose: network DNS filtering/ad blocking.
 
 Recommended approach:
 
-- Install only after Radarr/Sonarr/Prowlarr/qBittorrent are tested.
-- Keep LAN-only at first.
-- Connect it to Radarr and Sonarr.
-- Later decide whether trusted users should get access.
-
-### 3. Add AdGuard Home
-
-Purpose: network DNS filtering/ad blocking.
+- Install AdGuard Home in Docker.
+- Keep it LAN-only.
+- Do not immediately change the whole network to use it.
+- Test it from one device first by manually setting that device's DNS to the AdGuard server.
+- Only after testing, decide whether to point the UniFi network DNS/DHCP settings to AdGuard.
 
 Notes:
 
 - AdGuard Home is free and open-source.
 - It can replace or compete with Pi-hole.
 - Only one DNS/ad-blocking service should be primary at a time.
-- Do not change whole-network DNS until it has been tested from one device first.
 
-### 4. Improve backups
+## Next major tasks
+
+### 2. Improve backups
 
 Current backups exist, but the next improvement is an actual repeatable backup plan.
 
@@ -119,7 +120,18 @@ Store backups under:
 
 A later improvement should copy backups off the R515 so they are not stored only on the same physical server.
 
-### 5. Add Immich
+### 3. Add Jellyseerr or Overseerr
+
+Purpose: provide a nicer request interface for movies and TV.
+
+Recommended approach:
+
+- Install after indexers are available and Radarr/Sonarr/Prowlarr/qBittorrent have been tested with a controlled search/import.
+- Keep LAN-only at first.
+- Connect it to Radarr and Sonarr.
+- Later decide whether trusted users should get access.
+
+### 4. Add Immich
 
 Purpose: self-hosted photo backup and photo library.
 
@@ -129,7 +141,7 @@ Important before installing:
 - Immich changes quickly, so keep the stack documented and backed up.
 - Do not expose publicly until authentication, backups, and updates are understood.
 
-### 6. Finish Home Assistant migration
+### 5. Finish Home Assistant migration
 
 Home Assistant is currently in a safe paused state.
 
