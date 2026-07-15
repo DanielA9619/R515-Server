@@ -102,10 +102,10 @@ Planned / pending Docker services:
 
 ## Current Priorities
 
-1. Configure/test Prowlarr indexers and do a small Radarr/Sonarr search/import test.
-2. Add Jellyseerr or Overseerr for a nicer request front end.
-3. Add AdGuard Home for DNS/ad blocking.
-4. Build a safer backup plan, including off-server backups.
+1. Pause Prowlarr indexer/tracker testing until legal/private trackers are available.
+2. Add AdGuard Home for DNS/ad blocking, tested on one device before changing whole-network DNS.
+3. Build a safer backup plan, including off-server backups.
+4. Add Jellyseerr or Overseerr after indexers are available and Radarr/Sonarr search/import has been tested.
 5. Add Immich for photo backup and management after backups are ready.
 6. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
 
