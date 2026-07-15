@@ -50,6 +50,11 @@ This is the current planned build order for the R515 home server.
 - qBittorrent added to Sonarr as download client using host `gluetun` and category `sonarr`
 - Prowlarr connected to Sonarr
 - Sonarr monitor added in Uptime Kuma
+- AdGuard Home installed in Docker
+- AdGuard Home dashboard reachable on the LAN
+- AdGuard Home upstream DNS configured and server-side DNS tests passed
+- AdGuard Home blocking confirmed with `doubleclick.net` resolving to `0.0.0.0` / `::`
+- One iPhone was manually pointed to AdGuard DNS and appeared in the AdGuard query log
 
 ## Paused
 
@@ -79,23 +84,25 @@ Prowlarr -> Radarr/Sonarr -> qBittorrent through Gluetun -> /mnt/storage/downloa
 
 ## Immediate next step
 
-### 1. Add AdGuard Home, but test safely
+### 1. Continue AdGuard Home testing before whole-network rollout
 
-Purpose: network DNS filtering/ad blocking.
+Current status:
+
+- AdGuard Home is installed and working on `docker01`.
+- DNS resolution from the Debian VM to `192.168.10.135:53` works.
+- Blocking test works: `doubleclick.net` returns blocked addresses.
+- One iPhone has been manually configured to use `192.168.10.135` as DNS.
+- The iPhone appears in the AdGuard query log.
 
 Recommended approach:
 
-- Install AdGuard Home in Docker.
-- Keep it LAN-only.
-- Do not immediately change the whole network to use it.
-- Test it from one device first by manually setting that device's DNS to the AdGuard server.
-- Only after testing, decide whether to point the UniFi network DNS/DHCP settings to AdGuard.
+1. Use the iPhone normally for a while and watch for broken apps, websites, or login flows.
+2. If something breaks, check the AdGuard query log and temporarily allow the blocked domain if needed.
+3. Add AdGuard Home to Uptime Kuma if not already done.
+4. After testing, decide whether to point UniFi DHCP/DNS to AdGuard for the whole LAN.
+5. Keep the router/gateway DNS fallback plan ready so the network can be reverted quickly.
 
-Notes:
-
-- AdGuard Home is free and open-source.
-- It can replace or compete with Pi-hole.
-- Only one DNS/ad-blocking service should be primary at a time.
+Do not change whole-network DNS until one-device testing is stable.
 
 ## Next major tasks
 
