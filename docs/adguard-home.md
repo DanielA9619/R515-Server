@@ -85,6 +85,8 @@ DNS Server 2: blank
 
 The user confirmed the whole-network DNS setting worked.
 
+A fresh backup was completed after AdGuard Home was rolled out to the main/default LAN.
+
 ## iPhone privacy choice
 
 The user prefers to leave iPhone privacy features such as Limit IP Address Tracking / Private Relay enabled on iPhones.
