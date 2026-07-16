@@ -4,7 +4,7 @@ This document tracks AdGuard Home on the R515 Debian Docker VM.
 
 ## Current status
 
-AdGuard Home is installed in Docker on `docker01`.
+AdGuard Home is installed in Docker on `docker01` and is now being used as the DNS server for the main/default UniFi LAN.
 
 Current known access:
 
@@ -76,6 +76,15 @@ One iPhone was manually configured to use DNS server:
 
 The iPhone appeared in the AdGuard query log after the correct DNS IP was entered, confirming real client DNS traffic can go through AdGuard.
 
+The main/default UniFi LAN DHCP DNS setting was then changed from automatic DNS to manual DNS:
+
+```text
+DNS Server 1: 192.168.10.135
+DNS Server 2: blank
+```
+
+The user confirmed the whole-network DNS setting worked.
+
 ## iPhone privacy choice
 
 The user prefers to leave iPhone privacy features such as Limit IP Address Tracking / Private Relay enabled on iPhones.
@@ -88,20 +97,20 @@ Expected result:
 
 ## Current rollout state
 
-AdGuard is working, but whole-network DNS has not been changed yet.
+AdGuard has been rolled out to the main/default LAN through UniFi DHCP DNS.
 
-Current safe approach:
+Current approach:
 
-1. Continue optional testing on one iPhone, while accepting that iPhone privacy features may bypass some filtering.
+1. Watch the AdGuard query log for new clients.
 2. Watch for broken apps, websites, streaming services, captive portals, or login flows.
 3. If something breaks, check the AdGuard query log and allowlist only the needed domain.
-4. Add AdGuard Home to Uptime Kuma if not already added.
-5. After testing is stable, decide whether to point UniFi DHCP/DNS to AdGuard for the whole LAN.
+4. Keep AdGuard Home monitored in Uptime Kuma.
+5. Keep the rollback plan ready.
 
 ## Safety rules
 
 - Keep AdGuard Home LAN-only.
 - Do not expose AdGuard DNS or admin ports publicly.
-- Do not change whole-network DNS until basic client testing is stable.
-- Keep a rollback plan: set client DNS back to automatic, or point UniFi DNS back to the gateway/upstream resolver.
+- Keep a rollback plan: set UniFi DHCP DNS back to Auto, or point DNS back to the gateway/upstream resolver.
 - Avoid adding too many blocklists at once; troubleshootability matters more than maximum blocking.
+- Do not add a public secondary DNS server such as `1.1.1.1` or `8.8.8.8` if the goal is for clients to consistently use AdGuard.
