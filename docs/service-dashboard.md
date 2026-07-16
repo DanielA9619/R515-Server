@@ -69,7 +69,7 @@ Recommended first version:
 Later nice internal DNS names:
 
 ```text
-home.<house-domain>    -> Homarr
+r515.<house-domain>    -> Homarr / central portal
 status.<house-domain>  -> Uptime Kuma status page or Uptime Kuma instance
 ```
 
@@ -79,23 +79,35 @@ Embedding the Uptime Kuma status page inside the dashboard with an iframe is pos
 
 The user has a domain for the house, but a public-facing setup is not needed for the dashboard.
 
+Preferred local dashboard name:
+
+```text
+r515.<house-domain>
+```
+
 Safer first plan:
 
 1. Run the dashboard on the LAN only.
 2. Access it directly by IP/port at first.
-3. Later create an internal DNS name in AdGuard, such as:
+3. Later create an internal DNS rewrite in AdGuard:
 
 ```text
-home.<house-domain>
+r515.<house-domain> -> 192.168.10.135
 ```
 
-4. Point that local DNS name to:
+4. Initially this may still require port `7575`:
 
 ```text
-192.168.10.135
+http://r515.<house-domain>:7575
 ```
 
-5. Optionally use Caddy later so the dashboard can be reached without typing a port.
+5. Optionally use Caddy later so the dashboard can be reached without typing port `7575`:
+
+```text
+http://r515.<house-domain>
+```
+
+or local HTTPS if that is intentionally configured later.
 
 ## Safety rules
 
@@ -107,6 +119,7 @@ home.<house-domain>
 ## Next step
 
 1. Add Homarr to Uptime Kuma monitoring.
-2. Create an internal AdGuard DNS rewrite for the dashboard, such as `home.<house-domain>` -> `192.168.10.135`.
-3. Optionally use Caddy later so the dashboard can be reached without typing port `7575`.
-4. Back up `/srv/docker` after the Homarr dashboard is stable.
+2. Add a prominent Homarr card/link for the R515 Uptime Kuma status page.
+3. Create an internal AdGuard DNS rewrite for the dashboard: `r515.<house-domain>` -> `192.168.10.135`.
+4. Optionally use Caddy later so the dashboard can be reached without typing port `7575`.
+5. Back up `/srv/docker` after the Homarr dashboard is stable.
