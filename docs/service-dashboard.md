@@ -31,14 +31,22 @@ Home Assistant VM -> http://192.168.10.127:8123
 The internal AdGuard DNS rewrite for the preferred dashboard name is working:
 
 ```text
-r515.<house-domain> -> 192.168.10.135
+r515.allenfamhouse.com -> 192.168.10.135
 ```
 
-Current dashboard access works as:
+Current dashboard access works directly with the Homarr port:
 
 ```text
-http://r515.<house-domain>:7575
+http://r515.allenfamhouse.com:7575
 ```
+
+Caddy has also been configured to reverse proxy the dashboard over HTTPS using Caddy's internal CA:
+
+```text
+https://r515.allenfamhouse.com -> homarr:7575
+```
+
+This loads, but browsers show a certificate warning / "Not secure" because the certificate is issued by Caddy's local internal CA instead of a publicly trusted CA.
 
 Known dashboard links:
 
@@ -54,6 +62,7 @@ Radarr               http://192.168.10.135:7878
 Sonarr               http://192.168.10.135:8989
 Home Assistant VM    http://192.168.10.127:8123
 Proxmox              https://192.168.10.50:8006
+Homarr portal        https://r515.allenfamhouse.com
 ```
 
 ## Preferred approach
@@ -93,8 +102,8 @@ Current first version:
 Later nice internal DNS names:
 
 ```text
-r515.<house-domain>    -> Homarr / central portal
-status.<house-domain>  -> Uptime Kuma status page or Uptime Kuma instance
+r515.allenfamhouse.com    -> Homarr / central portal
+status.allenfamhouse.com  -> Uptime Kuma status page or Uptime Kuma instance
 ```
 
 Embedding the Uptime Kuma status page inside the dashboard with an iframe is possible later, but not the first choice. Uptime Kuma requires a special iframe-related setting for embedding, and that has clickjacking/security tradeoffs. A normal card/link is safer and simpler.
@@ -106,26 +115,26 @@ The user has a domain for the house, but a public-facing setup is not needed for
 Preferred local dashboard name:
 
 ```text
-r515.<house-domain>
+r515.allenfamhouse.com
 ```
 
 Current state:
 
 1. Homarr is running on `192.168.10.135:7575`.
-2. AdGuard DNS rewrite is working for `r515.<house-domain>` -> `192.168.10.135`.
-3. Current access works with port `7575`:
+2. AdGuard DNS rewrite is working for `r515.allenfamhouse.com` -> `192.168.10.135`.
+3. Direct access works with port `7575`:
 
 ```text
-http://r515.<house-domain>:7575
+http://r515.allenfamhouse.com:7575
 ```
 
-Next cleaner version:
-
-Use Caddy to reverse proxy the dashboard so the portal can be reached without typing port `7575`:
+4. Caddy reverse proxy works without port `7575`:
 
 ```text
-http://r515.<house-domain>
+https://r515.allenfamhouse.com
 ```
+
+5. The current HTTPS certificate is local/internal and therefore shows a browser warning unless the Caddy internal CA root certificate is trusted on the client device.
 
 HTTPS options:
 
@@ -141,7 +150,6 @@ HTTPS options:
 
 ## Next step
 
-1. Add Proxmox to Homarr if it is not already present: `https://192.168.10.50:8006`.
-2. Add a Caddy reverse proxy for `r515.<house-domain>` -> `homarr:7575` so the dashboard does not need port `7575`.
-3. Decide between local/internal HTTPS and public trusted HTTPS via DNS challenge.
-4. Back up `/srv/docker` after the Homarr/Caddy dashboard setup is stable.
+1. Decide whether to keep local/internal HTTPS with browser warnings, install/trust the Caddy local root certificate on client devices, or set up publicly trusted HTTPS with DNS challenge.
+2. Back up `/srv/docker` after the Homarr/Caddy dashboard setup is stable.
+3. Continue with the broader backup/off-server backup plan before installing Immich.
