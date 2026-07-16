@@ -20,7 +20,7 @@ The server is live and currently running:
 - Prowlarr for indexer management
 - Radarr for movie automation
 - Sonarr for TV automation
-- AdGuard Home for DNS filtering/ad blocking, currently tested manually from one iPhone before whole-network rollout
+- AdGuard Home for DNS filtering/ad blocking, now used by the main/default UniFi LAN via DHCP DNS
 
 Jellyfin works locally and remotely through:
 
@@ -86,7 +86,7 @@ Planned / pending Docker services:
 - [`docs/home-assistant-migration.md`](docs/home-assistant-migration.md) — HAOS VM migration plan
 - [`docs/open-questions.md`](docs/open-questions.md) — info still needed
 - [`docs/qbittorrent-vpn.md`](docs/qbittorrent-vpn.md) — qBittorrent + Mullvad/Gluetun setup notes
-- [`docs/adguard-home.md`](docs/adguard-home.md) — AdGuard Home setup and safe rollout notes
+- [`docs/adguard-home.md`](docs/adguard-home.md) — AdGuard Home setup and rollout notes
 
 ## Completed Major Milestones
 
@@ -100,12 +100,12 @@ Planned / pending Docker services:
 - Prowlarr installed and connected to qBittorrent
 - Radarr installed and connected to qBittorrent/Prowlarr
 - Sonarr installed and connected to qBittorrent/Prowlarr
-- AdGuard Home installed and verified from the Debian VM plus one iPhone test client
+- AdGuard Home installed, verified, and rolled out to the main/default UniFi LAN DNS
 - Fresh backup completed after qBittorrent + VPN setup
 
 ## Current Priorities
 
-1. Continue AdGuard Home testing on one device, then decide whether to point UniFi DHCP/DNS to AdGuard for the whole LAN.
+1. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
 2. Build a safer backup plan, including off-server backups.
 3. Pause Prowlarr indexer/tracker testing until legal/private trackers are available.
 4. Add Jellyseerr or Overseerr after indexers are available and Radarr/Sonarr search/import has been tested.
@@ -119,4 +119,4 @@ Planned / pending Docker services:
 - Public Jellyfin access should go through Caddy on ports `80` and `443` only.
 - Keep qBittorrent, Prowlarr, Radarr, Sonarr, Portainer, Uptime Kuma, AdGuard Home, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
 - Keep qBittorrent behind Gluetun/Mullvad.
-- Do not switch whole-network DNS to AdGuard until it has been tested on one device long enough to catch breakage.
+- Keep a DNS rollback plan ready: set UniFi DHCP DNS back to Auto or back to the previous resolver if AdGuard causes issues.
