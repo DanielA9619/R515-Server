@@ -102,6 +102,7 @@ Planned / pending Docker services:
 - Sonarr installed and connected to qBittorrent/Prowlarr
 - AdGuard Home installed, verified, and rolled out to the main/default UniFi LAN DNS
 - Fresh backup completed after qBittorrent + VPN setup
+- Fresh backup completed after AdGuard Home whole-LAN rollout
 
 ## Current Priorities
 
