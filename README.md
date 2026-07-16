@@ -21,6 +21,7 @@ The server is live and currently running:
 - Radarr for movie automation
 - Sonarr for TV automation
 - AdGuard Home for DNS filtering/ad blocking, now used by the main/default UniFi LAN via DHCP DNS
+- Homarr as the central internal service dashboard / landing page
 
 Jellyfin works locally and remotely through:
 
@@ -56,7 +57,7 @@ https://mediahubdaniel.duckdns.org
 |---|---|---|
 | Bare metal | Dell PowerEdge R515 | Physical server |
 | Hypervisor | Proxmox | VM host |
-| VM | `docker01` | Debian VM for Docker, Jellyfin, Caddy, Samba, monitoring, DNS filtering, and media automation |
+| VM | `docker01` | Debian VM for Docker, Jellyfin, Caddy, Samba, monitoring, DNS filtering, dashboard, and media automation |
 | VM | `haos` | Home Assistant OS VM, currently kept separate while Raspberry Pi remains fallback |
 
 ## Current Docker Services
@@ -71,10 +72,10 @@ https://mediahubdaniel.duckdns.org
 - Radarr
 - Sonarr
 - AdGuard Home
+- Homarr
 
 Planned / pending Docker services:
 
-- Homarr or similar central service dashboard
 - Immich
 - Jellyseerr or Overseerr
 - Backup automation
@@ -102,12 +103,13 @@ Planned / pending Docker services:
 - Radarr installed and connected to qBittorrent/Prowlarr
 - Sonarr installed and connected to qBittorrent/Prowlarr
 - AdGuard Home installed, verified, and rolled out to the main/default UniFi LAN DNS
+- Homarr installed and configured with service cards for the main local apps
 - Fresh backup completed after qBittorrent + VPN setup
 - Fresh backup completed after AdGuard Home whole-LAN rollout
 
 ## Current Priorities
 
-1. Add a central internal service dashboard so local service links are in one place.
+1. Add Homarr to Uptime Kuma and create a clean local DNS name for the dashboard.
 2. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
 3. Build a safer backup plan, including off-server backups.
 4. Pause Prowlarr indexer/tracker testing until legal/private trackers are available.
@@ -120,7 +122,7 @@ Planned / pending Docker services:
 - Do not commit DuckDNS tokens, passwords, API keys, Mullvad keys, or private keys.
 - Do not expose Jellyfin port `8096` directly to the internet while Caddy is working.
 - Public Jellyfin access should go through Caddy on ports `80` and `443` only.
-- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Portainer, Uptime Kuma, AdGuard Home, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
+- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Portainer, Uptime Kuma, AdGuard Home, Homarr, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
 - Keep qBittorrent behind Gluetun/Mullvad.
 - Keep a DNS rollback plan ready: set UniFi DHCP DNS back to Auto or back to the previous resolver if AdGuard causes issues.
 - Keep the central service dashboard internal/LAN-only unless remote access is redesigned with proper protection.
