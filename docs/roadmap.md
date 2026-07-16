@@ -57,6 +57,7 @@ This is the current planned build order for the R515 home server.
 - One iPhone was manually pointed to AdGuard DNS and appeared in the AdGuard query log after the correct DNS IP was used
 - Main/default UniFi LAN DHCP DNS changed to `192.168.10.135`
 - Whole-LAN AdGuard DNS rollout confirmed working by the user
+- Fresh backup completed after AdGuard Home whole-LAN rollout
 
 ## Paused
 
@@ -86,7 +87,42 @@ Prowlarr -> Radarr/Sonarr -> qBittorrent through Gluetun -> /mnt/storage/downloa
 
 ## Immediate next step
 
-### 1. Monitor AdGuard Home and make a post-AdGuard backup
+### 1. Add a central service dashboard / landing page
+
+Purpose: one internal place to access all local services without remembering each IP address and port.
+
+Recommended first dashboard:
+
+```text
+Homarr
+```
+
+Services to include:
+
+```text
+Jellyfin
+Portainer
+Uptime Kuma
+AdGuard Home
+qBittorrent
+Prowlarr
+Radarr
+Sonarr
+Home Assistant
+Proxmox
+Samba/share notes
+```
+
+Access plan:
+
+1. Keep the dashboard LAN-only at first.
+2. Start with direct access by IP and port.
+3. Later use AdGuard DNS rewrite and/or Caddy for a clean internal hostname.
+4. Do not make the dashboard public-facing unless remote access is redesigned securely.
+
+## Next major tasks
+
+### 2. Monitor AdGuard Home
 
 Current status:
 
@@ -101,11 +137,8 @@ Recommended approach:
 1. Watch the AdGuard query log for new clients.
 2. If something breaks, check the AdGuard query log and temporarily allow the blocked domain if needed.
 3. Keep the router/gateway DNS rollback plan ready so the network can be reverted quickly.
-4. Make a fresh `/srv/docker` backup after the AdGuard configuration is stable.
 
-## Next major tasks
-
-### 2. Improve backups
+### 3. Improve backups
 
 Current backups exist, but the next improvement is an actual repeatable backup plan.
 
@@ -126,7 +159,7 @@ Store backups under:
 
 A later improvement should copy backups off the R515 so they are not stored only on the same physical server.
 
-### 3. Add Jellyseerr or Overseerr
+### 4. Add Jellyseerr or Overseerr
 
 Purpose: provide a nicer request interface for movies and TV.
 
@@ -137,7 +170,7 @@ Recommended approach:
 - Connect it to Radarr and Sonarr.
 - Later decide whether trusted users should get access.
 
-### 4. Add Immich
+### 5. Add Immich
 
 Purpose: self-hosted photo backup and photo library.
 
@@ -147,7 +180,7 @@ Important before installing:
 - Immich changes quickly, so keep the stack documented and backed up.
 - Do not expose publicly until authentication, backups, and updates are understood.
 
-### 5. Finish Home Assistant migration
+### 6. Finish Home Assistant migration
 
 Home Assistant is currently in a safe paused state.
 
@@ -221,4 +254,3 @@ Priority: low. Build only after the core server, backups, Home Assistant, monito
 - Backup automation
 - Off-server backup destination
 - UPS monitoring
-- Dashboard/homepage
