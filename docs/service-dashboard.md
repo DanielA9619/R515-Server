@@ -16,6 +16,12 @@ http://192.168.10.135:7575
 
 The user completed Homarr setup and added cards for the main services.
 
+The Uptime Kuma status page has also been added as a prominent card/link in Homarr:
+
+```text
+R515 Server Status -> http://192.168.10.135:3001/status/r515
+```
+
 Known dashboard links:
 
 ```text
@@ -60,9 +66,9 @@ Current status page:
 http://192.168.10.135:3001/status/r515
 ```
 
-Recommended first version:
+Current first version:
 
-1. Add the Uptime Kuma status page as a prominent card/link in Homarr.
+1. Add the Uptime Kuma status page as a prominent card/link in Homarr. Done.
 2. Keep the status page LAN-only at first.
 3. Later optionally create a cleaner internal DNS name for it.
 
@@ -118,8 +124,7 @@ or local HTTPS if that is intentionally configured later.
 
 ## Next step
 
-1. Add Homarr to Uptime Kuma monitoring.
-2. Add a prominent Homarr card/link for the R515 Uptime Kuma status page.
-3. Create an internal AdGuard DNS rewrite for the dashboard: `r515.<house-domain>` -> `192.168.10.135`.
-4. Optionally use Caddy later so the dashboard can be reached without typing port `7575`.
-5. Back up `/srv/docker` after the Homarr dashboard is stable.
+1. Add Homarr to Uptime Kuma monitoring if not already done.
+2. Create an internal AdGuard DNS rewrite for the dashboard: `r515.<house-domain>` -> `192.168.10.135`.
+3. Optionally use Caddy later so the dashboard can be reached without typing port `7575`.
+4. Back up `/srv/docker` after the Homarr dashboard is stable.
