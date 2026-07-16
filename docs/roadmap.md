@@ -54,7 +54,9 @@ This is the current planned build order for the R515 home server.
 - AdGuard Home dashboard reachable on the LAN
 - AdGuard Home upstream DNS configured and server-side DNS tests passed
 - AdGuard Home blocking confirmed with `doubleclick.net` resolving to `0.0.0.0` / `::`
-- One iPhone was manually pointed to AdGuard DNS and appeared in the AdGuard query log
+- One iPhone was manually pointed to AdGuard DNS and appeared in the AdGuard query log after the correct DNS IP was used
+- Main/default UniFi LAN DHCP DNS changed to `192.168.10.135`
+- Whole-LAN AdGuard DNS rollout confirmed working by the user
 
 ## Paused
 
@@ -84,25 +86,22 @@ Prowlarr -> Radarr/Sonarr -> qBittorrent through Gluetun -> /mnt/storage/downloa
 
 ## Immediate next step
 
-### 1. Continue AdGuard Home testing before whole-network rollout
+### 1. Monitor AdGuard Home and make a post-AdGuard backup
 
 Current status:
 
 - AdGuard Home is installed and working on `docker01`.
 - DNS resolution from the Debian VM to `192.168.10.135:53` works.
 - Blocking test works: `doubleclick.net` returns blocked addresses.
-- One iPhone has been manually configured to use `192.168.10.135` as DNS.
-- The iPhone appears in the AdGuard query log.
+- Main/default UniFi LAN is now using `192.168.10.135` as DHCP DNS.
+- iPhones may keep Limit IP Address Tracking / Private Relay enabled, accepting partial filtering on those devices.
 
 Recommended approach:
 
-1. Use the iPhone normally for a while and watch for broken apps, websites, or login flows.
+1. Watch the AdGuard query log for new clients.
 2. If something breaks, check the AdGuard query log and temporarily allow the blocked domain if needed.
-3. Add AdGuard Home to Uptime Kuma if not already done.
-4. After testing, decide whether to point UniFi DHCP/DNS to AdGuard for the whole LAN.
-5. Keep the router/gateway DNS fallback plan ready so the network can be reverted quickly.
-
-Do not change whole-network DNS until one-device testing is stable.
+3. Keep the router/gateway DNS rollback plan ready so the network can be reverted quickly.
+4. Make a fresh `/srv/docker` backup after the AdGuard configuration is stable.
 
 ## Next major tasks
 
