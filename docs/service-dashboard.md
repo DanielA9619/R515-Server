@@ -1,12 +1,22 @@
 # Service Dashboard / Central Portal
 
-This document tracks the plan for a central landing page for the R515 home server services.
+This document tracks the central landing page for the R515 home server services.
 
 ## Goal
 
 Create one internal web page that links to all local services so the user does not need to remember every IP address and port.
 
-Possible dashboard links:
+## Current status
+
+Homarr is installed in Docker on `docker01` and is reachable on the LAN at:
+
+```text
+http://192.168.10.135:7575
+```
+
+The user completed Homarr setup and added cards for the main services.
+
+Known dashboard links:
 
 ```text
 Jellyfin             https://mediahubdaniel.duckdns.org
@@ -24,13 +34,7 @@ Proxmox              https://192.168.10.50:8006
 
 ## Preferred approach
 
-Use an internal-only dashboard service first. Do not make it public-facing.
-
-Recommended first choice:
-
-```text
-Homarr
-```
+Use Homarr as an internal-only dashboard service first. Do not make it public-facing.
 
 Reasoning:
 
@@ -102,4 +106,7 @@ home.<house-domain>
 
 ## Next step
 
-Install Homarr in Docker on `docker01`, keep it LAN-only, then add service links manually, including the R515 Uptime Kuma status page.
+1. Add Homarr to Uptime Kuma monitoring.
+2. Create an internal AdGuard DNS rewrite for the dashboard, such as `home.<house-domain>` -> `192.168.10.135`.
+3. Optionally use Caddy later so the dashboard can be reached without typing port `7575`.
+4. Back up `/srv/docker` after the Homarr dashboard is stable.
