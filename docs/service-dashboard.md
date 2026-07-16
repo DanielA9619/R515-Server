@@ -12,7 +12,7 @@ Possible dashboard links:
 Jellyfin             https://mediahubdaniel.duckdns.org
 Portainer           https://192.168.10.135:9443
 Uptime Kuma          http://192.168.10.135:3001
-Uptime status page   http://192.168.10.135:3001/status/<slug>
+Uptime status page   http://192.168.10.135:3001/status/r515
 AdGuard Home         http://192.168.10.135:3002
 qBittorrent          http://192.168.10.135:8080
 Prowlarr             http://192.168.10.135:9696
@@ -50,18 +50,17 @@ Dashy
 
 Yes, include server status in the central portal.
 
-Recommended first version:
-
-1. Create a Uptime Kuma status page named something like `R515 Server Status`.
-2. Add selected monitors: Jellyfin local/public, Caddy, AdGuard Home, Home Assistant, Portainer, qBittorrent, Prowlarr, Radarr, Sonarr, Proxmox ping, Debian VM ping, and gateway ping.
-3. Add the Uptime Kuma status page as a prominent card/link in Homarr.
-4. Keep the status page LAN-only at first.
-
-Preferred first URL shape:
+Current status page:
 
 ```text
-http://192.168.10.135:3001/status/<slug>
+http://192.168.10.135:3001/status/r515
 ```
+
+Recommended first version:
+
+1. Add the Uptime Kuma status page as a prominent card/link in Homarr.
+2. Keep the status page LAN-only at first.
+3. Later optionally create a cleaner internal DNS name for it.
 
 Later nice internal DNS names:
 
@@ -103,5 +102,4 @@ home.<house-domain>
 
 ## Next step
 
-1. Create a Uptime Kuma status page and link it from the future dashboard.
-2. Install Homarr in Docker on `docker01`, keep it LAN-only, then add service links manually.
+Install Homarr in Docker on `docker01`, keep it LAN-only, then add service links manually, including the R515 Uptime Kuma status page.
