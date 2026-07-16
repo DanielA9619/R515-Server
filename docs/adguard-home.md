@@ -43,7 +43,7 @@ https://dns.quad9.net/dns-query
 https://cloudflare-dns.com/dns-query
 ```
 
-Initial filtering was left conservative with the default AdGuard DNS filter enabled.
+Initial filtering was left conservative with the default AdGuard DNS filter enabled, then HaGeZi's Normal Blocklist was added for stronger but still balanced blocking.
 
 ## Tests completed
 
@@ -74,7 +74,17 @@ One iPhone was manually configured to use DNS server:
 192.168.10.135
 ```
 
-The iPhone appeared in the AdGuard query log, confirming real client DNS traffic is going through AdGuard.
+The iPhone appeared in the AdGuard query log after the correct DNS IP was entered, confirming real client DNS traffic can go through AdGuard.
+
+## iPhone privacy choice
+
+The user prefers to leave iPhone privacy features such as Limit IP Address Tracking / Private Relay enabled on iPhones.
+
+Expected result:
+
+- iPhones may not be fully or consistently filtered by AdGuard in every app/browser path.
+- Other devices that receive `192.168.10.135` as DNS should use AdGuard normally unless they have their own DNS-over-HTTPS, VPN, or private DNS setting.
+- This tradeoff is acceptable for now.
 
 ## Current rollout state
 
@@ -82,16 +92,16 @@ AdGuard is working, but whole-network DNS has not been changed yet.
 
 Current safe approach:
 
-1. Continue testing on one iPhone.
+1. Continue optional testing on one iPhone, while accepting that iPhone privacy features may bypass some filtering.
 2. Watch for broken apps, websites, streaming services, captive portals, or login flows.
 3. If something breaks, check the AdGuard query log and allowlist only the needed domain.
 4. Add AdGuard Home to Uptime Kuma if not already added.
-5. After one-device testing is stable, decide whether to point UniFi DHCP/DNS to AdGuard for the whole LAN.
+5. After testing is stable, decide whether to point UniFi DHCP/DNS to AdGuard for the whole LAN.
 
 ## Safety rules
 
 - Keep AdGuard Home LAN-only.
 - Do not expose AdGuard DNS or admin ports publicly.
-- Do not change whole-network DNS until one-device testing is stable.
+- Do not change whole-network DNS until basic client testing is stable.
 - Keep a rollback plan: set client DNS back to automatic, or point UniFi DNS back to the gateway/upstream resolver.
 - Avoid adding too many blocklists at once; troubleshootability matters more than maximum blocking.
