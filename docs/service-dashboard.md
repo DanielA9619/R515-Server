@@ -22,6 +22,12 @@ The Uptime Kuma status page has also been added as a prominent card/link in Homa
 R515 Server Status -> http://192.168.10.135:3001/status/r515
 ```
 
+Home Assistant has been added to Homarr as an integration/card:
+
+```text
+Home Assistant VM -> http://192.168.10.127:8123
+```
+
 Known dashboard links:
 
 ```text
@@ -124,7 +130,7 @@ or local HTTPS if that is intentionally configured later.
 
 ## Next step
 
-1. Add Homarr to Uptime Kuma monitoring if not already done.
+1. Add Proxmox to Homarr if it is not already present: `https://192.168.10.50:8006`.
 2. Create an internal AdGuard DNS rewrite for the dashboard: `r515.<house-domain>` -> `192.168.10.135`.
 3. Optionally use Caddy later so the dashboard can be reached without typing port `7575`.
 4. Back up `/srv/docker` after the Homarr dashboard is stable.
