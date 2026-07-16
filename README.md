@@ -74,10 +74,10 @@ https://mediahubdaniel.duckdns.org
 
 Planned / pending Docker services:
 
+- Homarr or similar central service dashboard
 - Immich
 - Jellyseerr or Overseerr
 - Backup automation
-- Optional dashboard/homepage
 
 ## Documentation
 
@@ -87,6 +87,7 @@ Planned / pending Docker services:
 - [`docs/open-questions.md`](docs/open-questions.md) — info still needed
 - [`docs/qbittorrent-vpn.md`](docs/qbittorrent-vpn.md) — qBittorrent + Mullvad/Gluetun setup notes
 - [`docs/adguard-home.md`](docs/adguard-home.md) — AdGuard Home setup and rollout notes
+- [`docs/service-dashboard.md`](docs/service-dashboard.md) — central service dashboard / landing page plan
 
 ## Completed Major Milestones
 
@@ -106,12 +107,13 @@ Planned / pending Docker services:
 
 ## Current Priorities
 
-1. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
-2. Build a safer backup plan, including off-server backups.
-3. Pause Prowlarr indexer/tracker testing until legal/private trackers are available.
-4. Add Jellyseerr or Overseerr after indexers are available and Radarr/Sonarr search/import has been tested.
-5. Add Immich for photo backup and management after backups are ready.
-6. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
+1. Add a central internal service dashboard so local service links are in one place.
+2. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
+3. Build a safer backup plan, including off-server backups.
+4. Pause Prowlarr indexer/tracker testing until legal/private trackers are available.
+5. Add Jellyseerr or Overseerr after indexers are available and Radarr/Sonarr search/import has been tested.
+6. Add Immich for photo backup and management after backups are ready.
+7. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
 
 ## Important Safety Notes
 
@@ -121,3 +123,4 @@ Planned / pending Docker services:
 - Keep qBittorrent, Prowlarr, Radarr, Sonarr, Portainer, Uptime Kuma, AdGuard Home, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
 - Keep qBittorrent behind Gluetun/Mullvad.
 - Keep a DNS rollback plan ready: set UniFi DHCP DNS back to Auto or back to the previous resolver if AdGuard causes issues.
+- Keep the central service dashboard internal/LAN-only unless remote access is redesigned with proper protection.
