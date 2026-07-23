@@ -1,10 +1,10 @@
-# FlareSolverr
+# Byparr
 
-This document tracks the FlareSolverr helper service added to the R515 Docker stack.
+This document tracks the Byparr helper service added to the R515 Docker stack.
 
 ## Current status
 
-FlareSolverr has been added as an internal Docker service on `docker01`.
+Byparr has been added as an internal Docker service on `docker01`.
 
 Access / service endpoint:
 
@@ -20,9 +20,9 @@ Internal helper service for supported Prowlarr/indexer integrations.
 
 ## Network and security
 
-- Keep FlareSolverr LAN-only.
+- Keep Byparr LAN-only.
 - Do not port forward `8191` publicly.
-- Do not expose FlareSolverr through Caddy or a public hostname unless remote access is intentionally redesigned and protected.
+- Do not expose Byparr through Caddy or a public hostname unless remote access is intentionally redesigned and protected.
 - Keep credentials, API keys, and private tokens out of GitHub.
 
 ## Related services
@@ -37,9 +37,9 @@ Internal helper service for supported Prowlarr/indexer integrations.
 Expected Docker Compose pattern:
 
 ```yaml
-  flaresolverr:
-    image: ghcr.io/flaresolverr/flaresolverr:latest
-    container_name: flaresolverr
+  byparr:
+    image: ghcr.io/thephaseless/byparr:latest
+    container_name: byparr
     restart: unless-stopped
     dns:
       - 192.168.10.135
@@ -58,13 +58,13 @@ Basic container checks:
 ```bash
 cd /srv/docker
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-docker logs flaresolverr --tail=80
+docker logs byparr --tail=80
 ```
 
 Basic network check from the container network:
 
 ```bash
-docker run --rm --network=container:flaresolverr busybox nslookup google.com
+docker run --rm --network=container:byparr busybox nslookup google.com
 ```
 
 ## Monitoring
@@ -72,7 +72,7 @@ docker run --rm --network=container:flaresolverr busybox nslookup google.com
 Recommended Uptime Kuma monitor:
 
 ```text
-Name: FlareSolverr
+Name: Byparr
 Type: HTTP(s)
 URL: http://192.168.10.135:8191
 ```
@@ -87,5 +87,5 @@ After confirming the service works, include it in the next `/srv/docker` backup:
 cd /srv/docker
 TODAY=$(date +%F)
 sudo mkdir -p /mnt/storage/backups/$TODAY
-sudo tar -czf /mnt/storage/backups/$TODAY/srv-docker-after-flaresolverr.tar.gz /srv/docker
+sudo tar -czf /mnt/storage/backups/$TODAY/srv-docker-after-byparr.tar.gz /srv/docker
 ```
