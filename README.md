@@ -18,6 +18,7 @@ The server is live and currently running:
 - Uptime Kuma for monitoring
 - qBittorrent routed through Gluetun/Mullvad
 - Prowlarr for indexer management
+- FlareSolverr as an internal helper service on port `8191`
 - Radarr for movie automation
 - Sonarr for TV automation
 - AdGuard Home for DNS filtering/ad blocking, now used by the main/default UniFi LAN via DHCP DNS
@@ -69,6 +70,7 @@ https://mediahubdaniel.duckdns.org
 - Gluetun
 - qBittorrent
 - Prowlarr
+- FlareSolverr
 - Radarr
 - Sonarr
 - AdGuard Home
@@ -89,6 +91,7 @@ Planned / pending Docker services:
 - [`docs/qbittorrent-vpn.md`](docs/qbittorrent-vpn.md) — qBittorrent + Mullvad/Gluetun setup notes
 - [`docs/adguard-home.md`](docs/adguard-home.md) — AdGuard Home setup and rollout notes
 - [`docs/service-dashboard.md`](docs/service-dashboard.md) — central service dashboard / landing page plan
+- [`docs/flaresolverr.md`](docs/flaresolverr.md) — FlareSolverr internal helper service notes
 
 ## Completed Major Milestones
 
@@ -105,6 +108,7 @@ Planned / pending Docker services:
 - AdGuard Home installed, verified, and rolled out to the main/default UniFi LAN DNS
 - Homarr installed and configured with service cards for the main local apps
 - Prowlarr DNS issue fixed by explicitly using AdGuard DNS (`192.168.10.135`) in Docker Compose
+- FlareSolverr added as an internal helper service on port `8191`
 - Fresh backup completed after qBittorrent + VPN setup
 - Fresh backup completed after AdGuard Home whole-LAN rollout
 
@@ -123,7 +127,7 @@ Planned / pending Docker services:
 - Do not commit DuckDNS tokens, passwords, API keys, Mullvad keys, or private keys.
 - Do not expose Jellyfin port `8096` directly to the internet while Caddy is working.
 - Public Jellyfin access should go through Caddy on ports `80` and `443` only.
-- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Portainer, Uptime Kuma, AdGuard Home, Homarr, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
+- Keep qBittorrent, Prowlarr, Radarr, Sonarr, FlareSolverr, Portainer, Uptime Kuma, AdGuard Home, Homarr, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
 - Keep qBittorrent behind Gluetun/Mullvad.
 - Keep a DNS rollback plan ready: set UniFi DHCP DNS back to Auto or back to the previous resolver if AdGuard causes issues.
 - Keep the central service dashboard internal/LAN-only unless remote access is redesigned with proper protection.
