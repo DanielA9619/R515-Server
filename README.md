@@ -104,6 +104,7 @@ Planned / pending Docker services:
 - Sonarr installed and connected to qBittorrent/Prowlarr
 - AdGuard Home installed, verified, and rolled out to the main/default UniFi LAN DNS
 - Homarr installed and configured with service cards for the main local apps
+- Prowlarr DNS issue fixed by explicitly using AdGuard DNS (`192.168.10.135`) in Docker Compose
 - Fresh backup completed after qBittorrent + VPN setup
 - Fresh backup completed after AdGuard Home whole-LAN rollout
 
