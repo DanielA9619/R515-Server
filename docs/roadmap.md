@@ -38,6 +38,9 @@ This is the current planned build order for the R515 home server.
 - Prowlarr installed
 - Prowlarr authentication enabled
 - qBittorrent added to Prowlarr as download client
+- Prowlarr DNS issue fixed by explicitly using AdGuard DNS (`192.168.10.135`) in Docker Compose
+- Prowlarr indexers added and confirmed working by the user
+- Byparr added as an internal helper service on port `8191`
 - Radarr installed for movies
 - Radarr authentication enabled
 - Radarr root folder configured as `/movies`
@@ -59,25 +62,24 @@ This is the current planned build order for the R515 home server.
 - Whole-LAN AdGuard DNS rollout confirmed working by the user
 - Fresh backup completed after AdGuard Home whole-LAN rollout
 
-## Paused
+## Active validation
 
-### Prowlarr indexer/tracker testing
+### Media automation search/import testing
 
-Prowlarr, Radarr, Sonarr, qBittorrent, and Gluetun are installed and connected, but there are no trackers/indexers available yet.
+Prowlarr, Radarr, Sonarr, qBittorrent, Gluetun, and Byparr are installed. The user has added working indexers in Prowlarr.
 
-Come back to this when legal/private indexers are available.
+Next controlled test flow:
 
-When indexers are added later:
-
-1. Add indexers in Prowlarr.
-2. Test search inside Prowlarr.
-3. Confirm Radarr sees synced indexers.
-4. Confirm Sonarr sees synced indexers.
-5. Run one small controlled Radarr movie test.
-6. Run one small controlled Sonarr TV test.
+1. Confirm Radarr sees the synced Prowlarr indexers.
+2. Confirm Sonarr sees the synced Prowlarr indexers.
+3. Confirm Radarr download client still tests successfully against qBittorrent.
+4. Confirm Sonarr download client still tests successfully against qBittorrent.
+5. Run one small controlled Radarr movie test using content the user has rights to access.
+6. Run one small controlled Sonarr TV test using content the user has rights to access.
 7. Confirm qBittorrent downloads to `/mnt/storage/downloads`.
 8. Confirm Radarr/Sonarr import completed files into Jellyfin folders.
 9. Confirm Jellyfin sees the imported media after library scan.
+10. Back up `/srv/docker` after the flow works.
 
 Expected flow:
 
@@ -87,56 +89,31 @@ Prowlarr -> Radarr/Sonarr -> qBittorrent through Gluetun -> /mnt/storage/downloa
 
 ## Immediate next step
 
-### 1. Add a central service dashboard / landing page
+### 1. Validate Radarr/Sonarr search and import
 
-Purpose: one internal place to access all local services without remembering each IP address and port.
+Purpose: prove the media automation stack works end-to-end before adding a request frontend.
 
-Recommended first dashboard:
+Order:
 
-```text
-Homarr
-```
-
-Services to include:
-
-```text
-Jellyfin
-Portainer
-Uptime Kuma
-AdGuard Home
-qBittorrent
-Prowlarr
-Radarr
-Sonarr
-Home Assistant
-Proxmox
-Samba/share notes
-```
-
-Access plan:
-
-1. Keep the dashboard LAN-only at first.
-2. Start with direct access by IP and port.
-3. Later use AdGuard DNS rewrite and/or Caddy for a clean internal hostname.
-4. Do not make the dashboard public-facing unless remote access is redesigned securely.
+1. Check Radarr and Sonarr indexer sync.
+2. Check qBittorrent download client in both apps.
+3. Run one controlled test from Radarr.
+4. Run one controlled test from Sonarr.
+5. Confirm Jellyfin sees the imported files.
+6. Back up `/srv/docker`.
 
 ## Next major tasks
 
-### 2. Monitor AdGuard Home
+### 2. Add Jellyseerr or Overseerr
 
-Current status:
-
-- AdGuard Home is installed and working on `docker01`.
-- DNS resolution from the Debian VM to `192.168.10.135:53` works.
-- Blocking test works: `doubleclick.net` returns blocked addresses.
-- Main/default UniFi LAN is now using `192.168.10.135` as DHCP DNS.
-- iPhones may keep Limit IP Address Tracking / Private Relay enabled, accepting partial filtering on those devices.
+Purpose: provide a nicer request interface for movies and TV.
 
 Recommended approach:
 
-1. Watch the AdGuard query log for new clients.
-2. If something breaks, check the AdGuard query log and temporarily allow the blocked domain if needed.
-3. Keep the router/gateway DNS rollback plan ready so the network can be reverted quickly.
+- Install after Radarr/Sonarr/Prowlarr/qBittorrent have been tested with a controlled search/import.
+- Keep LAN-only at first.
+- Connect it to Radarr and Sonarr.
+- Later decide whether trusted users should get access.
 
 ### 3. Improve backups
 
@@ -159,16 +136,21 @@ Store backups under:
 
 A later improvement should copy backups off the R515 so they are not stored only on the same physical server.
 
-### 4. Add Jellyseerr or Overseerr
+### 4. Monitor AdGuard Home
 
-Purpose: provide a nicer request interface for movies and TV.
+Current status:
+
+- AdGuard Home is installed and working on `docker01`.
+- DNS resolution from the Debian VM to `192.168.10.135:53` works.
+- Blocking test works: `doubleclick.net` returns blocked addresses.
+- Main/default UniFi LAN is now using `192.168.10.135` as DHCP DNS.
+- iPhones may keep Limit IP Address Tracking / Private Relay enabled, accepting partial filtering on those devices.
 
 Recommended approach:
 
-- Install after indexers are available and Radarr/Sonarr/Prowlarr/qBittorrent have been tested with a controlled search/import.
-- Keep LAN-only at first.
-- Connect it to Radarr and Sonarr.
-- Later decide whether trusted users should get access.
+1. Watch the AdGuard query log for new clients.
+2. If something breaks, check the AdGuard query log and temporarily allow the blocked domain if needed.
+3. Keep the router/gateway DNS rollback plan ready so the network can be reverted quickly.
 
 ### 5. Add Immich
 
