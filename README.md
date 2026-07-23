@@ -109,17 +109,18 @@ Planned / pending Docker services:
 - Homarr installed and configured with service cards for the main local apps
 - Prowlarr DNS issue fixed by explicitly using AdGuard DNS (`192.168.10.135`) in Docker Compose
 - Byparr added as an internal helper service on port `8191`
+- Prowlarr indexers added and confirmed working by the user
 - Fresh backup completed after qBittorrent + VPN setup
 - Fresh backup completed after AdGuard Home whole-LAN rollout
 
 ## Current Priorities
 
-1. Add Homarr to Uptime Kuma and create a clean local DNS name for the dashboard.
-2. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
-3. Build a safer backup plan, including off-server backups.
-4. Pause Prowlarr indexer/tracker testing until legal/private trackers are available.
-5. Add Jellyseerr or Overseerr after indexers are available and Radarr/Sonarr search/import has been tested.
-6. Add Immich for photo backup and management after backups are ready.
+1. Test a controlled Radarr search/download/import flow using content the user has rights to access.
+2. Test a controlled Sonarr search/download/import flow using content the user has rights to access.
+3. Confirm qBittorrent downloads land in `/mnt/storage/downloads` and Radarr/Sonarr import into the Jellyfin media folders.
+4. Add Jellyseerr or Overseerr after Radarr/Sonarr search/import has been tested.
+5. Build a safer backup plan, including off-server backups, before adding Immich.
+6. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
 7. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
 
 ## Important Safety Notes
