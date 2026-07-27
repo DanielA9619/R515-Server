@@ -21,6 +21,7 @@ The server is live and currently running:
 - Byparr as an internal helper service on port `8191`
 - Radarr for movie automation
 - Sonarr for TV automation
+- Seerr as the LAN-only media request frontend on port `5055`
 - AdGuard Home for DNS filtering/ad blocking, now used by the main/default UniFi LAN via DHCP DNS
 - Homarr as the central internal service dashboard / landing page
 
@@ -73,13 +74,13 @@ https://mediahubdaniel.duckdns.org
 - Byparr
 - Radarr
 - Sonarr
+- Seerr
 - AdGuard Home
 - Homarr
 
 Planned / pending Docker services:
 
 - Immich
-- Jellyseerr or Overseerr
 - Backup automation
 
 ## Documentation
@@ -92,6 +93,7 @@ Planned / pending Docker services:
 - [`docs/adguard-home.md`](docs/adguard-home.md) — AdGuard Home setup and rollout notes
 - [`docs/service-dashboard.md`](docs/service-dashboard.md) — central service dashboard / landing page plan
 - [`docs/byparr.md`](docs/byparr.md) — Byparr internal helper service notes
+- [`docs/seerr.md`](docs/seerr.md) — Seerr media request frontend notes
 
 ## Completed Major Milestones
 
@@ -111,25 +113,28 @@ Planned / pending Docker services:
 - Uptime Kuma DNS issue fixed so the public Jellyfin monitor can resolve `mediahubdaniel.duckdns.org`
 - Byparr added as an internal helper service on port `8191`
 - Prowlarr indexers added and confirmed working by the user
+- Seerr installed as the LAN-only media request frontend on port `5055`
+- Radarr and Sonarr quality profiles configured for 1080p fallback with 4K upgrades
 - Fresh backup completed after qBittorrent + VPN setup
 - Fresh backup completed after AdGuard Home whole-LAN rollout
 
 ## Current Priorities
 
-1. Test a controlled Radarr search/download/import flow using content the user has rights to access.
-2. Test a controlled Sonarr search/download/import flow using content the user has rights to access.
-3. Confirm qBittorrent downloads land in `/mnt/storage/downloads` and Radarr/Sonarr import into the Jellyfin media folders.
-4. Add Jellyseerr or Overseerr after Radarr/Sonarr search/import has been tested.
+1. Finish Seerr setup by testing one movie request and one TV request.
+2. Confirm qBittorrent downloads land in `/mnt/storage/downloads` and Radarr/Sonarr import into the Jellyfin media folders.
+3. Add Seerr to Homarr and Uptime Kuma.
+4. Back up `/srv/docker` after Seerr/request testing works.
 5. Build a safer backup plan, including off-server backups, before adding Immich.
 6. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
 7. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
+8. Build the SMS request bot after Seerr and the core media request flow are stable.
 
 ## Important Safety Notes
 
 - Do not commit DuckDNS tokens, passwords, API keys, Mullvad keys, or private keys.
 - Do not expose Jellyfin port `8096` directly to the internet while Caddy is working.
 - Public Jellyfin access should go through Caddy on ports `80` and `443` only.
-- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Byparr, Portainer, Uptime Kuma, AdGuard Home, Homarr, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
+- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Byparr, Seerr, Portainer, Uptime Kuma, AdGuard Home, Homarr, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
 - Keep qBittorrent behind Gluetun/Mullvad.
 - Keep a DNS rollback plan ready: set UniFi DHCP DNS back to Auto or back to the previous resolver if AdGuard causes issues.
 - Keep the central service dashboard internal/LAN-only unless remote access is redesigned with proper protection.
