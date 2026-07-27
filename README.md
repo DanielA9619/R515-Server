@@ -108,6 +108,7 @@ Planned / pending Docker services:
 - AdGuard Home installed, verified, and rolled out to the main/default UniFi LAN DNS
 - Homarr installed and configured with service cards for the main local apps
 - Prowlarr DNS issue fixed by explicitly using AdGuard DNS (`192.168.10.135`) in Docker Compose
+- Uptime Kuma DNS issue fixed so the public Jellyfin monitor can resolve `mediahubdaniel.duckdns.org`
 - Byparr added as an internal helper service on port `8191`
 - Prowlarr indexers added and confirmed working by the user
 - Fresh backup completed after qBittorrent + VPN setup
