@@ -114,20 +114,22 @@ Planned / pending Docker services:
 - Byparr added as an internal helper service on port `8191`
 - Prowlarr indexers added and confirmed working by the user
 - Seerr installed as the LAN-only media request frontend on port `5055`
+- Seerr connected to Jellyfin, Radarr, and Sonarr
+- Seerr request flow tested by the user
+- Seerr Uptime Kuma monitor URL typo fixed to use port `5055`
 - Radarr and Sonarr quality profiles configured for 1080p fallback with 4K upgrades
 - Fresh backup completed after qBittorrent + VPN setup
 - Fresh backup completed after AdGuard Home whole-LAN rollout
 
 ## Current Priorities
 
-1. Finish Seerr setup by testing one movie request and one TV request.
-2. Confirm qBittorrent downloads land in `/mnt/storage/downloads` and Radarr/Sonarr import into the Jellyfin media folders.
-3. Add Seerr to Homarr and Uptime Kuma.
-4. Back up `/srv/docker` after Seerr/request testing works.
+1. Add/confirm Seerr in Homarr and Uptime Kuma.
+2. Back up `/srv/docker` after Seerr/request testing works.
+3. Tune indexer/release selection to reduce stalled torrents and prefer healthier releases.
+4. Build the SMS request bot plan around Seerr as the request frontend.
 5. Build a safer backup plan, including off-server backups, before adding Immich.
 6. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
 7. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
-8. Build the SMS request bot after Seerr and the core media request flow are stable.
 
 ## Important Safety Notes
 
