@@ -18,6 +18,17 @@ Purpose:
 LAN-only movie and TV request frontend that connects Jellyfin, Radarr, and Sonarr.
 ```
 
+Current setup state:
+
+- Seerr is installed and reachable on port `5055`.
+- Jellyfin connection is configured.
+- Jellyfin external URL is `https://mediahubdaniel.duckdns.org`.
+- Radarr connection is configured.
+- Sonarr connection is configured.
+- Radarr and Sonarr use quality profiles that allow 1080p fallback with 4K upgrades.
+- User confirmed Seerr requests work.
+- Uptime Kuma monitor URL typo was fixed from port `505` to port `5055`.
+
 ## Connected services
 
 Seerr should connect to:
@@ -69,18 +80,18 @@ Expected Docker Compose pattern:
 ## Validation checklist
 
 1. Open `http://192.168.10.135:5055`.
-2. Confirm Jellyfin connection works.
-3. Confirm Radarr connection works.
-4. Confirm Sonarr connection works.
-5. Request one controlled movie using content the user has rights to access.
+2. Confirm Jellyfin connection works. - Done.
+3. Confirm Radarr connection works. - Done.
+4. Confirm Sonarr connection works. - Done.
+5. Request one controlled movie using content the user has rights to access. - User confirmed requests work.
 6. Confirm Radarr receives the request.
 7. Confirm qBittorrent starts the download through Gluetun.
 8. Confirm Radarr imports the completed file into `/mnt/storage/media/movies`.
 9. Confirm Jellyfin sees the movie after a scan.
-10. Request one controlled TV item using content the user has rights to access.
+10. Request one controlled TV item using content the user has rights to access. - User confirmed requests work.
 11. Confirm Sonarr imports the completed file into `/mnt/storage/media/tv`.
 12. Add Seerr to Homarr.
-13. Add Seerr to Uptime Kuma.
+13. Add Seerr to Uptime Kuma. - Monitor created; URL corrected to `http://192.168.10.135:5055`.
 14. Back up `/srv/docker`.
 
 ## Monitoring
@@ -93,6 +104,21 @@ Type: HTTP(s)
 URL: http://192.168.10.135:5055
 Accepted Status Codes: 200-399
 ```
+
+A previous typo used port `505`, which left the monitor pending/down. Correct port is `5055`.
+
+## Torrent health notes
+
+The stack works, but the user is seeing some downloads stall with no connections. This is usually a release/indexer health issue rather than a Seerr issue.
+
+Recommended tuning:
+
+- Prefer manual search while testing.
+- Prefer releases with real seeders.
+- Raise minimum seeders in Prowlarr sync/indexer settings where available.
+- Sort public/noisy indexers by seeders descending when supported.
+- Leave indexers with sorting warnings on defaults unless they repeatedly produce bad results.
+- Keep qBittorrent speed limits off unless upload saturation causes issues.
 
 ## Backup
 
