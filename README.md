@@ -41,6 +41,7 @@ https://mediahubdaniel.duckdns.org
 | HAOS VM | `192.168.10.127` |
 | Raspberry Pi Home Assistant fallback | `192.168.10.190` |
 | Jellyfin Domain | `mediahubdaniel.duckdns.org` |
+| Homarr / central dashboard domain | `r515.allenfamhouse.com` |
 | DuckDNS public IP observed during setup | `166.70.251.126` |
 
 `192.168.10.135` is reserved in UniFi for the Debian Docker VM.
@@ -86,6 +87,7 @@ Planned / pending Docker services:
 ## Documentation
 
 - [`docs/current-config.md`](docs/current-config.md) — current known server configuration
+- [`docs/domains.md`](docs/domains.md) — service domains, internal DNS names, and local URLs
 - [`docs/roadmap.md`](docs/roadmap.md) — service build order and priorities
 - [`docs/home-assistant-migration.md`](docs/home-assistant-migration.md) — HAOS VM migration plan
 - [`docs/open-questions.md`](docs/open-questions.md) — info still needed
