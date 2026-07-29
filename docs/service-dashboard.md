@@ -51,19 +51,23 @@ This loads, but browsers show a certificate warning / "Not secure" because the c
 Known dashboard links:
 
 ```text
+Homarr portal        https://r515.allenfamhouse.com
 Jellyfin             https://mediahubdaniel.duckdns.org
-Portainer           https://192.168.10.135:9443
+Seerr requests       http://192.168.10.135:5055
+R515 status page     http://192.168.10.135:3001/status/r515
+Portainer            https://192.168.10.135:9443
 Uptime Kuma          http://192.168.10.135:3001
-Uptime status page   http://192.168.10.135:3001/status/r515
 AdGuard Home         http://192.168.10.135:3002
 qBittorrent          http://192.168.10.135:8080
 Prowlarr             http://192.168.10.135:9696
 Radarr               http://192.168.10.135:7878
 Sonarr               http://192.168.10.135:8989
+Byparr               http://192.168.10.135:8191
 Home Assistant VM    http://192.168.10.127:8123
 Proxmox              https://192.168.10.50:8006
-Homarr portal        https://r515.allenfamhouse.com
 ```
+
+The full domain/local URL map is tracked in [`docs/domains.md`](domains.md).
 
 ## Preferred approach
 
@@ -102,8 +106,9 @@ Current first version:
 Later nice internal DNS names:
 
 ```text
-r515.allenfamhouse.com    -> Homarr / central portal
-status.allenfamhouse.com  -> Uptime Kuma status page or Uptime Kuma instance
+r515.allenfamhouse.com      -> Homarr / central portal
+requests.allenfamhouse.com  -> Seerr requests
+status.allenfamhouse.com    -> Uptime Kuma status page or Uptime Kuma instance
 ```
 
 Embedding the Uptime Kuma status page inside the dashboard with an iframe is possible later, but not the first choice. Uptime Kuma requires a special iframe-related setting for embedding, and that has clickjacking/security tradeoffs. A normal card/link is safer and simpler.
