@@ -118,6 +118,7 @@ Planned / pending Docker services:
 - Seerr request flow tested by the user
 - Seerr Uptime Kuma monitor URL typo fixed to use port `5055`
 - Radarr and Sonarr quality profiles configured for 1080p fallback with 4K upgrades
+- qBittorrent stalled-torrent issue fixed by binding qBittorrent to the correct VPN interface
 - Fresh backup completed after qBittorrent + VPN setup
 - Fresh backup completed after AdGuard Home whole-LAN rollout
 
