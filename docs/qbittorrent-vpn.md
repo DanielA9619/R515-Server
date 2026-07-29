@@ -31,6 +31,7 @@ Confirmed:
 - qBittorrent Web UI password was changed from the temporary/default password.
 - qBittorrent download paths were confirmed in the Web UI.
 - Uptime Kuma qBittorrent monitor was added/confirmed by the user.
+- qBittorrent stalled-torrent issue was fixed by changing qBittorrent's network interface binding to the VPN interface.
 - Backup was completed after qBittorrent + Mullvad/Gluetun was confirmed working.
 
 Example successful checks:
@@ -70,6 +71,35 @@ The first VPN attempts failed because the Mullvad account did not have active ti
 - Gluetun repeatedly restarted the VPN healthcheck.
 
 After adding time to the Mullvad account and recreating Gluetun/qBittorrent, the VPN became healthy and traffic tests passed.
+
+## qBittorrent interface binding fix
+
+A later issue made some torrents stall on the server even when the exact same torrent worked in another qBittorrent client. In the server qBittorrent Web UI, DHT/PeX/LSD showed as working, but torrents had `0` peers and many trackers timed out or failed.
+
+The fix was changing qBittorrent's network interface binding so the client used the correct VPN interface inside the Gluetun network namespace.
+
+Current intended qBittorrent Web UI settings:
+
+```text
+Tools -> Options -> Advanced
+Network Interface: VPN interface / tun0 if available
+Optional IP address to bind to: All addresses
+```
+
+If `tun0` is not visible, verify the interfaces from the Debian VM:
+
+```bash
+docker exec gluetun ip addr
+docker exec qbittorrent ip addr
+```
+
+Because qBittorrent uses:
+
+```yaml
+network_mode: "service:gluetun"
+```
+
+it should see the same VPN network interface as Gluetun. If torrents stall with `0` peers while the same torrent works elsewhere, check this interface binding before assuming the torrent or indexer is bad.
 
 ## Current secret/config values
 
@@ -153,6 +183,11 @@ docker run --rm --network=container:gluetun busybox nslookup cloudflare.com 127.
 
 ```bash
 docker run --rm --network=container:gluetun curlimages/curl:latest -s https://ifconfig.me && echo
+```
+
+```bash
+docker exec gluetun ip addr
+docker exec qbittorrent ip addr
 ```
 
 ## Backup checkpoint
