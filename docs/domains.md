@@ -14,6 +14,49 @@ Safety notes:
 - Public Jellyfin access should go through Caddy on ports `80` and `443` only.
 - Keep the DuckDNS token out of GitHub.
 
+## Future remote-access thought
+
+It is technically possible to add more public hostnames, either through additional DuckDNS names or through another DNS/domain setup pointing at Caddy.
+
+However, the current policy is:
+
+- Keep only Jellyfin public for now.
+- Do not expose admin services directly through DuckDNS.
+- If remote access is needed for admin/request tools, design it intentionally first.
+
+Possible future approaches:
+
+| Approach | Best use | Notes |
+| --- | --- | --- |
+| Extra DuckDNS hostname + Caddy | Public user-facing app, if intentionally approved | Could work for something like a protected request page, but not for raw admin dashboards. |
+| VPN / WireGuard / Tailscale-style access | Admin apps and private dashboards | Preferred direction for Proxmox, Portainer, qBittorrent, Radarr, Sonarr, AdGuard, Homarr, and Home Assistant. |
+| Access-protected tunnel / proxy | Public-ish access with an extra identity layer | Only after auth, headers, logging, and service-specific risks are understood. |
+| Internal-only aliases | Clean LAN URLs | Current safest direction for most services. |
+
+Candidate public-service ideas to revisit later:
+
+```text
+requests.<future-domain-or-duckdns> -> Seerr or SMS/request frontend, only with strong auth
+status.<future-domain-or-duckdns>   -> limited status page, not the full Uptime Kuma admin app
+```
+
+Services that should remain LAN/VPN-only unless remote access is redesigned with strong protection:
+
+```text
+qBittorrent
+Prowlarr
+Radarr
+Sonarr
+Byparr
+Portainer
+Uptime Kuma admin
+AdGuard Home
+Homarr
+Proxmox
+Home Assistant
+SMS bot webhook/admin functions
+```
+
 ## Current internal DNS / local domain
 
 | Name | Purpose | Current state |
@@ -93,7 +136,7 @@ Keep the dashboard and admin tools LAN-only unless remote access is intentionall
 ## Safety rules
 
 - Do not put DuckDNS tokens, API keys, passwords, VPN keys, or private keys in GitHub.
-- Do not expose qBittorrent, Prowlarr, Radarr, Sonarr, Byparr, Seerr, Portainer, Uptime Kuma, AdGuard Home, Homarr, Proxmox, or Home Assistant directly to the public internet.
+- Do not expose qBittorrent, Prowlarr, Radarr, Sonarr, Byparr, Seerr, Portainer, Uptime Kuma, AdGuard Home, Homarr, Proxmox, Home Assistant, or the SMS bot webhook directly to the public internet.
 - Keep qBittorrent behind Gluetun/Mullvad.
 - Keep the central dashboard internal unless remote access is redesigned with proper protection.
 - Keep an AdGuard DNS rollback plan ready in case local DNS changes break client access.
