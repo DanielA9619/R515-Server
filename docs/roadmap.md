@@ -22,6 +22,8 @@ This is the current planned build order for the R515 home server.
 - NVIDIA driver and NVIDIA Container Toolkit installed
 - Jellyfin Compose configured with the NVIDIA runtime
 - Jellyfin hardware transcoding confirmed with `jellyfin-ffmpeg` visible in `nvidia-smi`
+- Jellyfin plugin catalog DNS issue fixed by explicitly using AdGuard DNS (`192.168.10.135`) in Docker Compose
+- Initial Jellyfin audio-default cleanup completed for files where Russian was marked default and English was available
 - Home Assistant OS VM created in Proxmox
 - New HAOS VM is reachable at `192.168.10.127`
 - HACS, Matter Server, Terminal & SSH, Studio Code Server, Google Drive Backup, and UniFi work completed on new HAOS VM
@@ -35,6 +37,7 @@ This is the current planned build order for the R515 home server.
 - qBittorrent routed through Gluetun/Mullvad
 - qBittorrent download paths configured
 - qBittorrent monitor added in Uptime Kuma
+- qBittorrent stalled-torrent issue fixed by binding qBittorrent to the correct VPN interface
 - Fresh backup completed after qBittorrent + VPN was confirmed working
 - Prowlarr installed
 - Prowlarr authentication enabled
@@ -59,6 +62,10 @@ This is the current planned build order for the R515 home server.
 - Seerr installed as the LAN-only media request frontend on port `5055`
 - Seerr connected to Jellyfin during setup
 - Seerr Radarr and Sonarr setup started using the normal Radarr/Sonarr instances, not separate 4K servers
+- Local SMS request bot installed on port `5070`
+- SMS bot local health endpoint tested successfully
+- SMS bot movie search and request flow tested successfully against Seerr
+- SMS bot help command and TV search tested successfully
 - AdGuard Home installed in Docker
 - AdGuard Home dashboard reachable on the LAN
 - AdGuard Home upstream DNS configured and server-side DNS tests passed
@@ -72,47 +79,62 @@ This is the current planned build order for the R515 home server.
 
 ### Media request and search/import testing
 
-Prowlarr, Radarr, Sonarr, qBittorrent, Gluetun, Byparr, and Seerr are installed. The user has added working indexers in Prowlarr and configured Radarr/Sonarr quality profiles that allow 1080p fallback with 4K upgrades.
+Prowlarr, Radarr, Sonarr, qBittorrent, Gluetun, Byparr, Seerr, and the local SMS request bot are installed. The user has added working indexers in Prowlarr and configured Radarr/Sonarr quality profiles that allow 1080p fallback with 4K upgrades.
+
+Current validated flow:
+
+```text
+SMS bot local test -> Seerr -> Radarr/Sonarr -> Prowlarr -> qBittorrent through Gluetun -> /mnt/storage/downloads -> /mnt/storage/media -> Jellyfin
+```
 
 Next controlled test flow:
 
-1. Finish saving Radarr and Sonarr in Seerr.
-2. Request one controlled movie from Seerr using content the user has rights to access.
-3. Confirm Seerr sends the request to Radarr.
-4. Confirm Radarr sends the download to qBittorrent through Gluetun.
-5. Confirm qBittorrent downloads to `/mnt/storage/downloads`.
-6. Confirm Radarr imports the completed movie into `/mnt/storage/media/movies`.
-7. Confirm Jellyfin sees the movie after a library scan.
-8. Request one controlled TV episode/season from Seerr using content the user has rights to access.
-9. Confirm Sonarr sends the download to qBittorrent through Gluetun.
-10. Confirm Sonarr imports the completed TV media into `/mnt/storage/media/tv`.
-11. Add Seerr to Homarr and Uptime Kuma.
-12. Back up `/srv/docker` after the flow works.
+1. Confirm TV request selection from the SMS bot submits correctly to Seerr.
+2. Confirm Seerr sends the request to Sonarr.
+3. Confirm Sonarr sends the download to qBittorrent through Gluetun.
+4. Confirm qBittorrent downloads to `/mnt/storage/downloads`.
+5. Confirm Sonarr imports the completed TV media into `/mnt/storage/media/tv`.
+6. Confirm Jellyfin sees the TV media after a library scan.
+7. Add SMS bot to Homarr and Uptime Kuma.
+8. Back up `/srv/docker` after the flow works.
 
-Expected flow:
+### Media library maintenance
 
-```text
-Seerr -> Radarr/Sonarr -> Prowlarr -> qBittorrent through Gluetun -> /mnt/storage/downloads -> /mnt/storage/media -> Jellyfin
-```
+Periodic media cleanup should be run after large imports or when playback defaults look wrong.
+
+Tasks:
+
+1. Scan MKV files for cases where English audio exists but a non-English audio track is marked default.
+2. Fix obvious cases with `mkvpropedit` after confirming track numbers.
+3. Refresh Jellyfin metadata or rescan the affected library.
+4. Keep this process documented in `docs/media-library-maintenance.md`.
 
 ## Immediate next step
 
-### 1. Validate Seerr requests
+### 1. Back up the current Docker state
 
-Purpose: prove the request frontend works before building the SMS request bot.
+Purpose: preserve the working state after Seerr, qBittorrent interface fix, SMS bot local testing, Jellyfin plugin DNS fix, and initial media audio-default cleanup.
 
-Order:
+Suggested backup name:
 
-1. Finish Radarr and Sonarr setup in Seerr.
-2. Run one controlled movie request from Seerr.
-3. Run one controlled TV request from Seerr.
-4. Confirm imports into Jellyfin folders.
-5. Add Seerr to Homarr and Uptime Kuma.
-6. Back up `/srv/docker`.
+```text
+/mnt/storage/backups/<date>/srv-docker-after-smsbot-jellyfin-media-fixes.tar.gz
+```
+
+### 2. Add SMS bot to monitoring/dashboard
+
+Add the local SMS bot service to:
+
+```text
+Uptime Kuma -> http://192.168.10.135:5070/health
+Homarr -> http://192.168.10.135:5070/health or an internal note/card for the SMS bot
+```
+
+The bot should remain LAN-only unless remote/SMS provider ingress is intentionally designed.
 
 ## Next major tasks
 
-### 2. Improve backups
+### 3. Improve backups
 
 Current backups exist, but the next improvement is an actual repeatable backup plan.
 
@@ -133,7 +155,26 @@ Store backups under:
 
 A later improvement should copy backups off the R515 so they are not stored only on the same physical server.
 
-### 3. Monitor AdGuard Home
+### 4. Continue SMS request bot
+
+Current status:
+
+- Local FastAPI SMS bot is running on port `5070`.
+- `/health` returns `{"status":"ok"}`.
+- Movie search and request flow works through Seerr.
+- Help command works.
+- TV search works for a season-specific query.
+
+Next bot features:
+
+1. Confirm TV request submission works end-to-end.
+2. Add `Status` command.
+3. Add `What's downloading?` command.
+4. Add `Recently added` command.
+5. Add better error handling for already-requested or already-available items.
+6. Only after local behavior is stable, connect a real SMS provider/number.
+
+### 5. Monitor AdGuard Home
 
 Current status:
 
@@ -149,7 +190,7 @@ Recommended approach:
 2. If something breaks, check the AdGuard query log and temporarily allow the blocked domain if needed.
 3. Keep the router/gateway DNS rollback plan ready so the network can be reverted quickly.
 
-### 4. Add Immich
+### 6. Add Immich
 
 Purpose: self-hosted photo backup and photo library.
 
@@ -159,7 +200,7 @@ Important before installing:
 - Immich changes quickly, so keep the stack documented and backed up.
 - Do not expose publicly until authentication, backups, and updates are understood.
 
-### 5. Finish Home Assistant migration
+### 7. Finish Home Assistant migration
 
 Home Assistant is currently in a safe paused state.
 
@@ -224,7 +265,7 @@ Safety and permissions:
 - Keep an audit log of senders, commands, actions, and results.
 - Use least-privilege API credentials for Jellyfin, Home Assistant, and request services.
 
-Priority: build only after Seerr, backups, Home Assistant, monitoring, and media automation are stable.
+Priority: continue only after the current local bot, backups, monitoring, and media automation are stable.
 
 ## Later possibilities
 
