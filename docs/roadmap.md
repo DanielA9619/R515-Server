@@ -66,6 +66,8 @@ This is the current planned build order for the R515 home server.
 - SMS bot local health endpoint tested successfully
 - SMS bot movie search and request flow tested successfully against Seerr
 - SMS bot help command and TV search tested successfully
+- SMS bot `Status` command tested successfully against Seerr and qBittorrent
+- SMS bot `Downloads` command tested successfully and adjusted to hide completed/seeding torrents
 - AdGuard Home installed in Docker
 - AdGuard Home dashboard reachable on the LAN
 - AdGuard Home upstream DNS configured and server-side DNS tests passed
@@ -95,8 +97,8 @@ Next controlled test flow:
 4. Confirm qBittorrent downloads to `/mnt/storage/downloads`.
 5. Confirm Sonarr imports the completed TV media into `/mnt/storage/media/tv`.
 6. Confirm Jellyfin sees the TV media after a library scan.
-7. Add SMS bot to Homarr and Uptime Kuma.
-8. Back up `/srv/docker` after the flow works.
+7. Keep SMS bot local/LAN-only until a real SMS provider ingress is intentionally designed.
+8. Back up `/srv/docker` after this working checkpoint.
 
 ### Media library maintenance
 
@@ -113,17 +115,17 @@ Tasks:
 
 ### 1. Back up the current Docker state
 
-Purpose: preserve the working state after Seerr, qBittorrent interface fix, SMS bot local testing, Jellyfin plugin DNS fix, and initial media audio-default cleanup.
+Purpose: preserve the working state after Seerr, qBittorrent interface fix, SMS bot local testing, Jellyfin plugin DNS fix, initial media audio-default cleanup, and the latest SMS bot `Status`/`Downloads` commands.
 
 Suggested backup name:
 
 ```text
-/mnt/storage/backups/<date>/srv-docker-after-smsbot-jellyfin-media-fixes.tar.gz
+/mnt/storage/backups/<date>/srv-docker-after-smsbot-status-downloads.tar.gz
 ```
 
-### 2. Add SMS bot to monitoring/dashboard
+### 2. Add/confirm SMS bot monitoring/dashboard
 
-Add the local SMS bot service to:
+Add or confirm the local SMS bot service in:
 
 ```text
 Uptime Kuma -> http://192.168.10.135:5070/health
@@ -155,7 +157,7 @@ Store backups under:
 
 A later improvement should copy backups off the R515 so they are not stored only on the same physical server.
 
-### 4. Continue SMS request bot
+### 4. Continue SMS request bot polish
 
 Current status:
 
@@ -164,15 +166,16 @@ Current status:
 - Movie search and request flow works through Seerr.
 - Help command works.
 - TV search works for a season-specific query.
+- `Status` reports Seerr/qBittorrent health, active/stalled/complete counts, and aggregate speed.
+- `Downloads` reports not-yet-complete qBittorrent downloads and hides completed/seeding torrents.
 
 Next bot features:
 
 1. Confirm TV request submission works end-to-end.
-2. Add `Status` command.
-3. Add `What's downloading?` command.
-4. Add `Recently added` command.
-5. Add better error handling for already-requested or already-available items.
-6. Only after local behavior is stable, connect a real SMS provider/number.
+2. Add `Recently added` command.
+3. Add better error handling for already-requested or already-available items.
+4. Add simple audit logging for sender, command, action, and result.
+5. Only after local behavior is stable, connect a real SMS provider/number.
 
 ### 5. Monitor AdGuard Home
 
@@ -265,7 +268,7 @@ Safety and permissions:
 - Keep an audit log of senders, commands, actions, and results.
 - Use least-privilege API credentials for Jellyfin, Home Assistant, and request services.
 
-Priority: continue only after the current local bot, backups, monitoring, and media automation are stable.
+Priority: connect a real SMS provider only after the current local bot, backups, monitoring, and media automation are stable.
 
 ## Later possibilities
 
