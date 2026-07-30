@@ -33,6 +33,7 @@ Health:    http://192.168.10.135:5070/health
 Webhook:   http://192.168.10.135:5070/sms
 App path:  /srv/docker/smsbot/app.py
 Data path: /srv/docker/smsbot/data
+Audit log: /srv/docker/smsbot/data/audit.log
 Media RO:  /mnt/storage/media -> /media:ro
 ```
 
@@ -61,6 +62,7 @@ Validated behavior:
 - `Status` reports Seerr and qBittorrent status plus active/stalled/complete download counts.
 - `Downloads` reports not-yet-complete qBittorrent downloads and filters out completed/seeding torrents.
 - `Recently added` scans the read-only `/media` mount and returns newest imported movie/TV media files.
+- Audit logging works and writes JSON-lines records to `/srv/docker/smsbot/data/audit.log`.
 - Fresh `/srv/docker` backups were completed after the status/downloads work and again after the recently-added + TV queue test checkpoint.
 
 ## Docker Compose pattern
@@ -181,6 +183,19 @@ curl -X POST http://192.168.10.135:5070/sms \
   -d '{"From":"+15555550123","Body":"Recently added"}'
 ```
 
+Audit log check:
+
+```bash
+tail -n 10 /srv/docker/smsbot/data/audit.log
+```
+
+Example audit entries observed after testing:
+
+```json
+{"ts":"2026-07-30T08:24:52.198943+00:00","sender":"+15555550123","body":"Status","action":"status","status":"ok","detail":""}
+{"ts":"2026-07-30T08:24:53.508196+00:00","sender":"+15555550123","body":"Recently added","action":"recently_added","status":"ok","detail":""}
+```
+
 ## qBittorrent integration note
 
 The bot logs into qBittorrent's Web API.
@@ -201,6 +216,17 @@ Current behavior:
 - The bot scans video files under `/media`.
 - Results are sorted by file modification time.
 - The command intentionally shows imported library media, not unfinished files in `/mnt/storage/downloads/complete`.
+
+## Audit logging note
+
+Audit logging is intentionally simple and local.
+
+Current behavior:
+
+- Writes JSON-lines records to `/srv/docker/smsbot/data/audit.log` through the existing `/app/data` volume.
+- Logs timestamp, sender, command body, action, status, and a short detail string.
+- Does not log API keys, passwords, provider tokens, or webhook signing secrets.
+- Audit logs stay LAN-local and are included in `/srv/docker` backups.
 
 ## Monitoring and dashboard
 
@@ -249,6 +275,14 @@ Suggested/used backup name pattern:
 /mnt/storage/backups/<date>/srv-docker-after-smsbot-recently-added-tv-queue-test.tar.gz
 ```
 
+A new backup should be made after audit logging is considered final.
+
+Suggested backup name pattern:
+
+```text
+/mnt/storage/backups/<date>/srv-docker-after-smsbot-audit-log.tar.gz
+```
+
 ## Safety rules
 
 - Keep the bot LAN-only during local testing.
@@ -256,11 +290,11 @@ Suggested/used backup name pattern:
 - Never allow arbitrary shell commands over SMS.
 - Use least-privilege API keys and passwords.
 - Require stronger confirmation for any future destructive commands.
-- Keep audit logging in mind before adding server-control or Home Assistant-control commands.
+- Keep audit logging enabled before adding server-control or Home Assistant-control commands.
 
 ## Next improvements
 
-1. Add a simple audit log for sender, command, action, and result.
+1. Back up `/srv/docker` after the audit log checkpoint.
 2. Improve already-requested/already-available messages from Seerr.
 3. Clean up `Recently added` title formatting if filesystem names are too messy.
 4. Choose and configure a real SMS provider/number only after local behavior is stable.
