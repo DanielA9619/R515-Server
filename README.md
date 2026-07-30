@@ -128,7 +128,7 @@ Planned / pending Docker services:
 - qBittorrent stalled-torrent issue fixed by binding qBittorrent to the correct VPN interface
 - Initial movie audio-default cleanup completed for files where Russian was default and English was available
 - Local SMS request bot installed on port `5070`
-- SMS bot movie search/request, TV search, help, status, and downloads commands tested locally
+- SMS bot movie search/request, TV search, help, status, downloads, and recently-added commands tested locally
 - SMS bot added/ready for Uptime Kuma and Homarr local tracking
 - Fresh backup completed after qBittorrent + VPN setup
 - Fresh backup completed after AdGuard Home whole-LAN rollout
@@ -137,7 +137,7 @@ Planned / pending Docker services:
 ## Current Priorities
 
 1. Add/confirm SMS bot in Homarr and Uptime Kuma if not already done.
-2. Finish SMS request bot polish: confirm TV request submission end-to-end, add `Recently added`, and improve already-requested/already-available responses.
+2. Finish SMS request bot polish: confirm TV request submission end-to-end, improve already-requested/already-available responses, and decide whether `Recently added` title cleanup is worth it.
 3. Run periodic media library maintenance checks for audio default flags and Jellyfin/plugin connectivity.
 4. Build a safer backup plan, including off-server backups, before adding Immich.
 5. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
