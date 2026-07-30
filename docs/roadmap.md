@@ -71,6 +71,7 @@ This is the current planned build order for the R515 home server.
 - SMS bot `Status` command tested successfully against Seerr and qBittorrent
 - SMS bot `Downloads` command tested successfully and adjusted to hide completed/seeding torrents
 - SMS bot `Recently added` command tested successfully against the read-only `/media` mount
+- Fresh backup completed after SMS bot `Recently added` and TV queue test
 - AdGuard Home installed in Docker
 - AdGuard Home dashboard reachable on the LAN
 - AdGuard Home upstream DNS configured and server-side DNS tests passed
@@ -98,7 +99,8 @@ Validated SMS request tests:
 2. TV search works for season-specific requests.
 3. TV season request confirmation works: the Silo season 2 test submitted to Seerr and added items to the Sonarr queue.
 4. qBittorrent showed no new active download only because the queued Silo items were deleted manually from Sonarr before they could download.
-5. Keep SMS bot local/LAN-only until a real SMS provider ingress is intentionally designed.
+5. `Status`, `Downloads`, and `Recently added` work locally.
+6. Keep SMS bot local/LAN-only until a real SMS provider ingress is intentionally designed.
 
 ### Media library maintenance
 
@@ -113,7 +115,18 @@ Tasks:
 
 ## Immediate next step
 
-### 1. Add/confirm SMS bot monitoring/dashboard
+### 1. Add audit logging to the SMS bot
+
+Purpose: keep a basic local record of who sent a command, what command was run, what action happened, and whether it succeeded.
+
+Recommended behavior:
+
+- Write JSON-lines records under `/srv/docker/smsbot/data/audit.log` through the existing `/app/data` volume.
+- Log sender, command text, action name, result status, and a short detail string.
+- Do not log API keys, passwords, provider tokens, or full secrets.
+- Keep logs LAN-local and backed up with `/srv/docker`.
+
+### 2. Add/confirm SMS bot monitoring/dashboard
 
 Add or confirm the local SMS bot service in:
 
@@ -123,16 +136,6 @@ Homarr -> http://192.168.10.135:5070/health or an internal note/card for the SMS
 ```
 
 The bot should remain LAN-only unless remote/SMS provider ingress is intentionally designed.
-
-### 2. Back up after the latest SMS bot changes
-
-After the `Recently added` command and TV request confirmation are considered final, make another `/srv/docker` backup.
-
-Suggested backup name:
-
-```text
-/mnt/storage/backups/<date>/srv-docker-after-smsbot-recently-added-tv-queue-test.tar.gz
-```
 
 ## Next major tasks
 
@@ -172,8 +175,8 @@ Current status:
 
 Next bot features:
 
-1. Improve already-requested or already-available messages from Seerr.
-2. Add simple audit logging for sender, command, action, and result.
+1. Add simple audit logging for sender, command, action, and result.
+2. Improve already-requested or already-available messages from Seerr.
 3. Clean up `Recently added` title formatting if filesystem names are too messy.
 4. Only after local behavior is stable, connect a real SMS provider/number.
 
