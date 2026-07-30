@@ -76,6 +76,7 @@ This is the current planned build order for the R515 home server.
 - Main/default UniFi LAN DHCP DNS changed to `192.168.10.135`
 - Whole-LAN AdGuard DNS rollout confirmed working by the user
 - Fresh backup completed after AdGuard Home whole-LAN rollout
+- Fresh backup completed after SMS bot status/downloads, Jellyfin plugin DNS, and media audio-default fixes
 
 ## Active validation
 
@@ -98,7 +99,6 @@ Next controlled test flow:
 5. Confirm Sonarr imports the completed TV media into `/mnt/storage/media/tv`.
 6. Confirm Jellyfin sees the TV media after a library scan.
 7. Keep SMS bot local/LAN-only until a real SMS provider ingress is intentionally designed.
-8. Back up `/srv/docker` after this working checkpoint.
 
 ### Media library maintenance
 
@@ -113,17 +113,7 @@ Tasks:
 
 ## Immediate next step
 
-### 1. Back up the current Docker state
-
-Purpose: preserve the working state after Seerr, qBittorrent interface fix, SMS bot local testing, Jellyfin plugin DNS fix, initial media audio-default cleanup, and the latest SMS bot `Status`/`Downloads` commands.
-
-Suggested backup name:
-
-```text
-/mnt/storage/backups/<date>/srv-docker-after-smsbot-status-downloads.tar.gz
-```
-
-### 2. Add/confirm SMS bot monitoring/dashboard
+### 1. Add/confirm SMS bot monitoring/dashboard
 
 Add or confirm the local SMS bot service in:
 
@@ -133,6 +123,16 @@ Homarr -> http://192.168.10.135:5070/health or an internal note/card for the SMS
 ```
 
 The bot should remain LAN-only unless remote/SMS provider ingress is intentionally designed.
+
+### 2. Continue SMS request bot polish
+
+Next useful bot features:
+
+1. Confirm TV request submission works end-to-end.
+2. Add `Recently added` command.
+3. Add better error handling for already-requested or already-available items.
+4. Add simple audit logging for sender, command, action, and result.
+5. Only after local behavior is stable, connect a real SMS provider/number.
 
 ## Next major tasks
 
@@ -157,27 +157,7 @@ Store backups under:
 
 A later improvement should copy backups off the R515 so they are not stored only on the same physical server.
 
-### 4. Continue SMS request bot polish
-
-Current status:
-
-- Local FastAPI SMS bot is running on port `5070`.
-- `/health` returns `{"status":"ok"}`.
-- Movie search and request flow works through Seerr.
-- Help command works.
-- TV search works for a season-specific query.
-- `Status` reports Seerr/qBittorrent health, active/stalled/complete counts, and aggregate speed.
-- `Downloads` reports not-yet-complete qBittorrent downloads and hides completed/seeding torrents.
-
-Next bot features:
-
-1. Confirm TV request submission works end-to-end.
-2. Add `Recently added` command.
-3. Add better error handling for already-requested or already-available items.
-4. Add simple audit logging for sender, command, action, and result.
-5. Only after local behavior is stable, connect a real SMS provider/number.
-
-### 5. Monitor AdGuard Home
+### 4. Monitor AdGuard Home
 
 Current status:
 
@@ -193,7 +173,7 @@ Recommended approach:
 2. If something breaks, check the AdGuard query log and temporarily allow the blocked domain if needed.
 3. Keep the router/gateway DNS rollback plan ready so the network can be reverted quickly.
 
-### 6. Add Immich
+### 5. Add Immich
 
 Purpose: self-hosted photo backup and photo library.
 
@@ -203,7 +183,7 @@ Important before installing:
 - Immich changes quickly, so keep the stack documented and backed up.
 - Do not expose publicly until authentication, backups, and updates are understood.
 
-### 7. Finish Home Assistant migration
+### 6. Finish Home Assistant migration
 
 Home Assistant is currently in a safe paused state.
 
