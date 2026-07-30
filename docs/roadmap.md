@@ -66,6 +66,7 @@ This is the current planned build order for the R515 home server.
 - SMS bot local health endpoint tested successfully
 - SMS bot movie search and request flow tested successfully against Seerr
 - SMS bot help command and TV search tested successfully
+- SMS bot TV season request confirmation tested successfully against Seerr
 - SMS bot `Status` command tested successfully against Seerr and qBittorrent
 - SMS bot `Downloads` command tested successfully and adjusted to hide completed/seeding torrents
 - SMS bot `Recently added` command tested successfully against the read-only `/media` mount
@@ -91,15 +92,15 @@ Current validated flow:
 SMS bot local test -> Seerr -> Radarr/Sonarr -> Prowlarr -> qBittorrent through Gluetun -> /mnt/storage/downloads -> /mnt/storage/media -> Jellyfin
 ```
 
-Next controlled test flow:
+The SMS bot successfully submitted a TV season request to Seerr. The current follow-up is to check why that request did not immediately create an active qBittorrent download.
 
-1. Confirm TV request selection from the SMS bot submits correctly to Seerr.
-2. Confirm Seerr sends the request to Sonarr.
-3. Confirm Sonarr sends the download to qBittorrent through Gluetun.
-4. Confirm qBittorrent downloads to `/mnt/storage/downloads`.
-5. Confirm Sonarr imports the completed TV media into `/mnt/storage/media/tv`.
-6. Confirm Jellyfin sees the TV media after a library scan.
-7. Keep SMS bot local/LAN-only until a real SMS provider ingress is intentionally designed.
+Next controlled checks:
+
+1. Check the request in Seerr -> Requests.
+2. Check Sonarr -> Activity -> Queue.
+3. Check Sonarr -> Wanted -> Manual Search for the requested season/episodes.
+4. Confirm whether the season is already monitored/available, waiting for approval, or simply had no release grabbed.
+5. Keep SMS bot local/LAN-only until a real SMS provider ingress is intentionally designed.
 
 ### Media library maintenance
 
@@ -114,7 +115,21 @@ Tasks:
 
 ## Immediate next step
 
-### 1. Add/confirm SMS bot monitoring/dashboard
+### 1. Check the latest TV request result
+
+The SMS bot accepted the TV request, but qBittorrent reported no active downloads afterward.
+
+Check:
+
+```text
+Seerr -> Requests
+Sonarr -> Activity -> Queue
+Sonarr -> Wanted -> Manual Search
+```
+
+This will show whether the request is waiting, already available, blocked by a quality/profile rule, or simply did not find a healthy release.
+
+### 2. Add/confirm SMS bot monitoring/dashboard
 
 Add or confirm the local SMS bot service in:
 
@@ -124,17 +139,6 @@ Homarr -> http://192.168.10.135:5070/health or an internal note/card for the SMS
 ```
 
 The bot should remain LAN-only unless remote/SMS provider ingress is intentionally designed.
-
-### 2. Continue SMS request bot polish
-
-Next useful bot features:
-
-1. Confirm TV request submission works end-to-end.
-2. Improve already-requested or already-available messages from Seerr.
-3. Add simple audit logging for sender, command, action, and result.
-4. Clean up `Recently added` title formatting if filesystem names are too messy.
-5. Only after local behavior is stable, connect a real SMS provider/number.
-6. Back up `/srv/docker` after the `Recently added` checkpoint.
 
 ## Next major tasks
 
@@ -159,7 +163,28 @@ Store backups under:
 
 A later improvement should copy backups off the R515 so they are not stored only on the same physical server.
 
-### 4. Monitor AdGuard Home
+### 4. Continue SMS request bot polish
+
+Current status:
+
+- Local FastAPI SMS bot is running on port `5070`.
+- `/health` returns `{"status":"ok"}`.
+- Movie search and request flow works through Seerr.
+- Help command works.
+- TV search and TV season request submission work through Seerr.
+- `Status` reports Seerr/qBittorrent health, active/stalled/complete counts, and aggregate speed.
+- `Downloads` reports not-yet-complete qBittorrent downloads and hides completed/seeding torrents.
+- `Recently added` reports newest imported media from the read-only `/media` mount.
+
+Next bot features:
+
+1. Improve already-requested or already-available messages from Seerr.
+2. Add simple audit logging for sender, command, action, and result.
+3. Clean up `Recently added` title formatting if filesystem names are too messy.
+4. Only after local behavior is stable, connect a real SMS provider/number.
+5. Back up `/srv/docker` after the `Recently added` checkpoint.
+
+### 5. Monitor AdGuard Home
 
 Current status:
 
@@ -175,7 +200,7 @@ Recommended approach:
 2. If something breaks, check the AdGuard query log and temporarily allow the blocked domain if needed.
 3. Keep the router/gateway DNS rollback plan ready so the network can be reverted quickly.
 
-### 5. Add Immich
+### 6. Add Immich
 
 Purpose: self-hosted photo backup and photo library.
 
@@ -185,7 +210,7 @@ Important before installing:
 - Immich changes quickly, so keep the stack documented and backed up.
 - Do not expose publicly until authentication, backups, and updates are understood.
 
-### 6. Finish Home Assistant migration
+### 7. Finish Home Assistant migration
 
 Home Assistant is currently in a safe paused state.
 
