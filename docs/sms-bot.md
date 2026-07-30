@@ -56,6 +56,7 @@ Validated behavior:
 - `TV Silo season 2` returns a numbered TV result from Seerr.
 - `Status` reports Seerr and qBittorrent status plus active/stalled/complete download counts.
 - `Downloads` reports not-yet-complete qBittorrent downloads and filters out completed/seeding torrents.
+- A fresh `/srv/docker` backup was completed after the status/downloads commands were working.
 
 ## Docker Compose pattern
 
@@ -189,6 +190,24 @@ URL: http://192.168.10.135:5070/health
 
 The webhook endpoint `/sms` should not be exposed publicly until a real SMS provider, authentication checks, and remote-ingress design are finished.
 
+## Backup checkpoint
+
+Backup completed after the local SMS bot successfully supported:
+
+```text
+Help
+Movie search/request
+TV search
+Status
+Downloads
+```
+
+Suggested/used backup name pattern:
+
+```text
+/mnt/storage/backups/<date>/srv-docker-after-smsbot-status-downloads.tar.gz
+```
+
 ## Safety rules
 
 - Keep the bot LAN-only during local testing.
@@ -205,4 +224,3 @@ The webhook endpoint `/sms` should not be exposed publicly until a real SMS prov
 3. Improve already-requested/already-available messages from Seerr.
 4. Add a simple audit log for sender, command, action, and result.
 5. Choose and configure a real SMS provider/number only after local behavior is stable.
-6. Back up `/srv/docker` after this working checkpoint.
