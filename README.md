@@ -132,16 +132,16 @@ Planned / pending Docker services:
 - SMS bot added/ready for Uptime Kuma and Homarr local tracking
 - Fresh backup completed after qBittorrent + VPN setup
 - Fresh backup completed after AdGuard Home whole-LAN rollout
+- Fresh backup completed after SMS bot status/downloads, Jellyfin plugin DNS, and media audio-default fixes
 
 ## Current Priorities
 
-1. Back up `/srv/docker` after Seerr, SMS bot testing, Jellyfin DNS, and media audio-default fixes.
-2. Add/confirm SMS bot in Homarr and Uptime Kuma if not already done.
-3. Finish SMS request bot polish: confirm TV request submission end-to-end, add `Recently added`, and improve already-requested/already-available responses.
-4. Run periodic media library maintenance checks for audio default flags and Jellyfin/plugin connectivity.
-5. Build a safer backup plan, including off-server backups, before adding Immich.
-6. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
-7. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
+1. Add/confirm SMS bot in Homarr and Uptime Kuma if not already done.
+2. Finish SMS request bot polish: confirm TV request submission end-to-end, add `Recently added`, and improve already-requested/already-available responses.
+3. Run periodic media library maintenance checks for audio default flags and Jellyfin/plugin connectivity.
+4. Build a safer backup plan, including off-server backups, before adding Immich.
+5. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
+6. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
 
 ## Important Safety Notes
 
