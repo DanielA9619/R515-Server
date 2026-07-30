@@ -56,11 +56,12 @@ Validated behavior:
 - `Movie Interstellar` returns numbered movie choices from Seerr.
 - Replying with `1` requests the chosen movie through Seerr.
 - `TV Silo season 2` returns a numbered TV result from Seerr.
-- Replying with `1` after the TV search submits the selected season request to Seerr.
+- Replying with `1` after the TV search submits the selected season request to Seerr and added items to the Sonarr queue.
+- The Silo queued items were manually deleted by the user before download, so no qBittorrent activity was expected after that test.
 - `Status` reports Seerr and qBittorrent status plus active/stalled/complete download counts.
 - `Downloads` reports not-yet-complete qBittorrent downloads and filters out completed/seeding torrents.
 - `Recently added` scans the read-only `/media` mount and returns newest imported movie/TV media files.
-- A fresh `/srv/docker` backup was completed after the status/downloads commands were working.
+- Fresh `/srv/docker` backups were completed after the status/downloads work and again after the recently-added + TV queue test checkpoint.
 
 ## Docker Compose pattern
 
@@ -222,7 +223,7 @@ URL: http://192.168.10.135:5070/health
 
 The webhook endpoint `/sms` should not be exposed publicly until a real SMS provider, authentication checks, and remote-ingress design are finished.
 
-## Backup checkpoint
+## Backup checkpoints
 
 Backup completed after the local SMS bot successfully supported:
 
@@ -240,7 +241,13 @@ Suggested/used backup name pattern:
 /mnt/storage/backups/<date>/srv-docker-after-smsbot-status-downloads.tar.gz
 ```
 
-A new backup should be made after the `Recently added` command is considered final.
+Backup also completed after the `Recently added` command and TV queue test checkpoint.
+
+Suggested/used backup name pattern:
+
+```text
+/mnt/storage/backups/<date>/srv-docker-after-smsbot-recently-added-tv-queue-test.tar.gz
+```
 
 ## Safety rules
 
@@ -253,9 +260,7 @@ A new backup should be made after the `Recently added` command is considered fin
 
 ## Next improvements
 
-1. Check why the latest TV request did not immediately create an active qBittorrent download.
+1. Add a simple audit log for sender, command, action, and result.
 2. Improve already-requested/already-available messages from Seerr.
-3. Add a simple audit log for sender, command, action, and result.
-4. Clean up `Recently added` title formatting if filesystem names are too messy.
-5. Choose and configure a real SMS provider/number only after local behavior is stable.
-6. Back up `/srv/docker` after the `Recently added` checkpoint.
+3. Clean up `Recently added` title formatting if filesystem names are too messy.
+4. Choose and configure a real SMS provider/number only after local behavior is stable.
