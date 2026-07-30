@@ -72,6 +72,9 @@ This is the current planned build order for the R515 home server.
 - SMS bot `Downloads` command tested successfully and adjusted to hide completed/seeding torrents
 - SMS bot `Recently added` command tested successfully against the read-only `/media` mount
 - Fresh backup completed after SMS bot `Recently added` and TV queue test
+- Audit logging added to SMS bot and tested with JSON-lines records under `/srv/docker/smsbot/data/audit.log`
+- Fresh backup completed after SMS bot audit logging was added and tested
+- Initial periodic PC copy of `/mnt/storage/backups` to Windows started with Robocopy
 - AdGuard Home installed in Docker
 - AdGuard Home dashboard reachable on the LAN
 - AdGuard Home upstream DNS configured and server-side DNS tests passed
@@ -82,6 +85,25 @@ This is the current planned build order for the R515 home server.
 - Fresh backup completed after SMS bot status/downloads, Jellyfin plugin DNS, and media audio-default fixes
 
 ## Active validation
+
+### Backups and off-server copies
+
+Current approach:
+
+```text
+R515 local backups: /mnt/storage/backups
+Windows PC copy:    D:\R515-Backups\backups
+Samba path:         \\192.168.10.135\media\backups
+```
+
+Robocopy from Windows has copied the existing backup tree to the PC. The next check is to confirm that the newest SMS/audit backup files exist on the R515 and were copied to the PC, because the Windows listing did not clearly show every newest backup file.
+
+Recommended next checks:
+
+1. On Debian, run `date` to confirm the VM clock is correct.
+2. On Debian, list `/mnt/storage/backups` and verify the latest `srv-docker-after-smsbot-audit-log.tar.gz` backup exists.
+3. On Windows, rerun Robocopy after confirming the source backup files exist.
+4. Later, turn the Robocopy command into a Windows Scheduled Task if this approach works well.
 
 ### Media request and search/import testing
 
@@ -100,7 +122,8 @@ Validated SMS request tests:
 3. TV season request confirmation works: the Silo season 2 test submitted to Seerr and added items to the Sonarr queue.
 4. qBittorrent showed no new active download only because the queued Silo items were deleted manually from Sonarr before they could download.
 5. `Status`, `Downloads`, and `Recently added` work locally.
-6. Keep SMS bot local/LAN-only until a real SMS provider ingress is intentionally designed.
+6. SMS audit logging works locally.
+7. Keep SMS bot local/LAN-only until a real SMS provider ingress is intentionally designed.
 
 ### Media library maintenance
 
@@ -115,16 +138,18 @@ Tasks:
 
 ## Immediate next step
 
-### 1. Add audit logging to the SMS bot
+### 1. Verify newest backups copied to the PC
 
-Purpose: keep a basic local record of who sent a command, what command was run, what action happened, and whether it succeeded.
+The first Robocopy run copied existing backups to the PC, but the Windows listing should be checked against the R515 source tree.
 
-Recommended behavior:
+Run on Debian:
 
-- Write JSON-lines records under `/srv/docker/smsbot/data/audit.log` through the existing `/app/data` volume.
-- Log sender, command text, action name, result status, and a short detail string.
-- Do not log API keys, passwords, provider tokens, or full secrets.
-- Keep logs LAN-local and backed up with `/srv/docker`.
+```bash
+date
+find /mnt/storage/backups -type f -printf "%TY-%Tm-%Td %TH:%TM  %s bytes  %p\n" | sort
+```
+
+Then rerun the Windows Robocopy pull if the newest files are present on the server but missing from `D:\R515-Backups\backups`.
 
 ### 2. Add/confirm SMS bot monitoring/dashboard
 
@@ -141,7 +166,7 @@ The bot should remain LAN-only unless remote/SMS provider ingress is intentional
 
 ### 3. Improve backups
 
-Current backups exist, but the next improvement is an actual repeatable backup plan.
+Current backups exist, and periodic manual Robocopy to the Windows PC has started. The next improvement is making the copy repeatable and adding a clear restore plan.
 
 Recommended backup targets:
 
@@ -152,15 +177,42 @@ Home Assistant backups
 Important media/config metadata
 ```
 
-Store backups under:
+Store source backups under:
 
 ```text
 /mnt/storage/backups
 ```
 
-A later improvement should copy backups off the R515 so they are not stored only on the same physical server.
+Keep periodic PC copies under:
 
-### 4. Continue SMS request bot polish
+```text
+D:\R515-Backups\backups
+```
+
+A later improvement should add a second destination, such as an external drive or cloud/object storage, especially before trusting Immich with irreplaceable photos.
+
+### 4. Remote access redesign thought
+
+It may be useful later to expose selected services through another DuckDNS name or another domain, but this should be treated as a separate remote-access design project.
+
+Current direction:
+
+- Keep Jellyfin public through `mediahubdaniel.duckdns.org` and Caddy.
+- Keep admin apps LAN-only for now.
+- Do not expose qBittorrent, Prowlarr, Radarr, Sonarr, Byparr, Portainer, Uptime Kuma admin, AdGuard Home, Homarr, Proxmox, Home Assistant, or the SMS bot webhook directly to the public internet.
+- Prefer VPN/Tailscale/WireGuard-style access for private admin apps.
+- Only consider extra DuckDNS/Caddy routes for carefully selected user-facing services, with authentication and logging planned first.
+
+Possible future public-ish candidates:
+
+```text
+requests.<future-domain-or-duckdns> -> protected media request frontend
+status.<future-domain-or-duckdns>   -> limited public status page, not the admin dashboard
+```
+
+Track details in `docs/domains.md` before implementing anything.
+
+### 5. Continue SMS request bot polish
 
 Current status:
 
@@ -172,15 +224,15 @@ Current status:
 - `Status` reports Seerr/qBittorrent health, active/stalled/complete counts, and aggregate speed.
 - `Downloads` reports not-yet-complete qBittorrent downloads and hides completed/seeding torrents.
 - `Recently added` reports newest imported media from the read-only `/media` mount.
+- Audit logging writes JSON-lines records under `/srv/docker/smsbot/data/audit.log`.
 
 Next bot features:
 
-1. Add simple audit logging for sender, command, action, and result.
-2. Improve already-requested or already-available messages from Seerr.
-3. Clean up `Recently added` title formatting if filesystem names are too messy.
-4. Only after local behavior is stable, connect a real SMS provider/number.
+1. Improve already-requested or already-available messages from Seerr.
+2. Clean up `Recently added` title formatting if filesystem names are too messy.
+3. Only after local behavior is stable, connect a real SMS provider/number.
 
-### 5. Monitor AdGuard Home
+### 6. Monitor AdGuard Home
 
 Current status:
 
@@ -196,7 +248,7 @@ Recommended approach:
 2. If something breaks, check the AdGuard query log and temporarily allow the blocked domain if needed.
 3. Keep the router/gateway DNS rollback plan ready so the network can be reverted quickly.
 
-### 6. Add Immich
+### 7. Add Immich
 
 Purpose: self-hosted photo backup and photo library.
 
@@ -206,7 +258,7 @@ Important before installing:
 - Immich changes quickly, so keep the stack documented and backed up.
 - Do not expose publicly until authentication, backups, and updates are understood.
 
-### 7. Finish Home Assistant migration
+### 8. Finish Home Assistant migration
 
 Home Assistant is currently in a safe paused state.
 
