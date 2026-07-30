@@ -88,6 +88,7 @@ Planned / pending Docker services:
 
 - [`docs/current-config.md`](docs/current-config.md) — current known server configuration
 - [`docs/domains.md`](docs/domains.md) — service domains, internal DNS names, and local URLs
+- [`docs/media-library-maintenance.md`](docs/media-library-maintenance.md) — periodic Jellyfin/media cleanup checks, including audio default flags
 - [`docs/roadmap.md`](docs/roadmap.md) — service build order and priorities
 - [`docs/home-assistant-migration.md`](docs/home-assistant-migration.md) — HAOS VM migration plan
 - [`docs/open-questions.md`](docs/open-questions.md) — info still needed
@@ -113,6 +114,7 @@ Planned / pending Docker services:
 - Homarr installed and configured with service cards for the main local apps
 - Prowlarr DNS issue fixed by explicitly using AdGuard DNS (`192.168.10.135`) in Docker Compose
 - Uptime Kuma DNS issue fixed so the public Jellyfin monitor can resolve `mediahubdaniel.duckdns.org`
+- Jellyfin plugin catalog DNS issue fixed by explicitly using AdGuard DNS (`192.168.10.135`) in Docker Compose
 - Byparr added as an internal helper service on port `8191`
 - Prowlarr indexers added and confirmed working by the user
 - Seerr installed as the LAN-only media request frontend on port `5055`
@@ -121,15 +123,17 @@ Planned / pending Docker services:
 - Seerr Uptime Kuma monitor URL typo fixed to use port `5055`
 - Radarr and Sonarr quality profiles configured for 1080p fallback with 4K upgrades
 - qBittorrent stalled-torrent issue fixed by binding qBittorrent to the correct VPN interface
+- Initial movie audio-default cleanup completed for files where Russian was default and English was available
+- Local SMS request bot installed and tested for movie search/request plus TV search
 - Fresh backup completed after qBittorrent + VPN setup
 - Fresh backup completed after AdGuard Home whole-LAN rollout
 
 ## Current Priorities
 
-1. Add/confirm Seerr in Homarr and Uptime Kuma.
-2. Back up `/srv/docker` after Seerr/request testing works.
-3. Tune indexer/release selection to reduce stalled torrents and prefer healthier releases.
-4. Build the SMS request bot plan around Seerr as the request frontend.
+1. Back up `/srv/docker` after Seerr, SMS bot testing, Jellyfin DNS, and media audio-default fixes.
+2. Add/confirm Seerr and SMS bot in Homarr and Uptime Kuma.
+3. Continue SMS request bot work: finish TV request confirmation/status commands, then connect a real SMS provider later.
+4. Run periodic media library maintenance checks for audio default flags and Jellyfin/plugin connectivity.
 5. Build a safer backup plan, including off-server backups, before adding Immich.
 6. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
 7. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
@@ -139,7 +143,7 @@ Planned / pending Docker services:
 - Do not commit DuckDNS tokens, passwords, API keys, Mullvad keys, or private keys.
 - Do not expose Jellyfin port `8096` directly to the internet while Caddy is working.
 - Public Jellyfin access should go through Caddy on ports `80` and `443` only.
-- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Byparr, Seerr, Portainer, Uptime Kuma, AdGuard Home, Homarr, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
+- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Byparr, Seerr, SMS bot, Portainer, Uptime Kuma, AdGuard Home, Homarr, and Home Assistant private/LAN-only unless remote access is intentionally redesigned.
 - Keep qBittorrent behind Gluetun/Mullvad.
 - Keep a DNS rollback plan ready: set UniFi DHCP DNS back to Auto or back to the previous resolver if AdGuard causes issues.
 - Keep the central service dashboard internal/LAN-only unless remote access is redesigned with proper protection.
