@@ -56,6 +56,7 @@ Validated behavior:
 - `Movie Interstellar` returns numbered movie choices from Seerr.
 - Replying with `1` requests the chosen movie through Seerr.
 - `TV Silo season 2` returns a numbered TV result from Seerr.
+- Replying with `1` after the TV search submits the selected season request to Seerr.
 - `Status` reports Seerr and qBittorrent status plus active/stalled/complete download counts.
 - `Downloads` reports not-yet-complete qBittorrent downloads and filters out completed/seeding torrents.
 - `Recently added` scans the read-only `/media` mount and returns newest imported movie/TV media files.
@@ -147,6 +148,14 @@ curl -X POST http://192.168.10.135:5070/sms \
   -d '{"From":"+15555550123","Body":"TV Silo season 2"}'
 ```
 
+Confirm first TV search result:
+
+```bash
+curl -X POST http://192.168.10.135:5070/sms \
+  -H "Content-Type: application/json" \
+  -d '{"From":"+15555550123","Body":"1"}'
+```
+
 Status:
 
 ```bash
@@ -220,7 +229,7 @@ Backup completed after the local SMS bot successfully supported:
 ```text
 Help
 Movie search/request
-TV search
+TV search/request
 Status
 Downloads
 ```
@@ -244,7 +253,7 @@ A new backup should be made after the `Recently added` command is considered fin
 
 ## Next improvements
 
-1. Confirm TV request selection submits all the way through Seerr and Sonarr.
+1. Check why the latest TV request did not immediately create an active qBittorrent download.
 2. Improve already-requested/already-available messages from Seerr.
 3. Add a simple audit log for sender, command, action, and result.
 4. Clean up `Recently added` title formatting if filesystem names are too messy.
