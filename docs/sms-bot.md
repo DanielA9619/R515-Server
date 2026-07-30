@@ -63,7 +63,7 @@ Validated behavior:
 - `Downloads` reports not-yet-complete qBittorrent downloads and filters out completed/seeding torrents.
 - `Recently added` scans the read-only `/media` mount and returns newest imported movie/TV media files.
 - Audit logging works and writes JSON-lines records to `/srv/docker/smsbot/data/audit.log`.
-- Fresh `/srv/docker` backups were completed after the status/downloads work and again after the recently-added + TV queue test checkpoint.
+- Fresh `/srv/docker` backups were completed after the status/downloads work, after the recently-added + TV queue test checkpoint, and after audit logging was added.
 
 ## Docker Compose pattern
 
@@ -189,13 +189,6 @@ Audit log check:
 tail -n 10 /srv/docker/smsbot/data/audit.log
 ```
 
-Example audit entries observed after testing:
-
-```json
-{"ts":"2026-07-30T08:24:52.198943+00:00","sender":"+15555550123","body":"Status","action":"status","status":"ok","detail":""}
-{"ts":"2026-07-30T08:24:53.508196+00:00","sender":"+15555550123","body":"Recently added","action":"recently_added","status":"ok","detail":""}
-```
-
 ## qBittorrent integration note
 
 The bot logs into qBittorrent's Web API.
@@ -217,16 +210,25 @@ Current behavior:
 - Results are sorted by file modification time.
 - The command intentionally shows imported library media, not unfinished files in `/mnt/storage/downloads/complete`.
 
-## Audit logging note
+## Audit logging
 
-Audit logging is intentionally simple and local.
+Audit logging writes JSON-lines records to:
 
-Current behavior:
+```text
+/srv/docker/smsbot/data/audit.log
+```
 
-- Writes JSON-lines records to `/srv/docker/smsbot/data/audit.log` through the existing `/app/data` volume.
-- Logs timestamp, sender, command body, action, status, and a short detail string.
-- Does not log API keys, passwords, provider tokens, or webhook signing secrets.
-- Audit logs stay LAN-local and are included in `/srv/docker` backups.
+Each record includes:
+
+```text
+timestamp, sender, command body, action, status, short detail
+```
+
+Safety notes:
+
+- Do not log API keys, passwords, SMS provider tokens, webhook signing secrets, or other full secrets.
+- Keep the audit log LAN-local.
+- The log is included in `/srv/docker` backups because it lives under the smsbot data directory.
 
 ## Monitoring and dashboard
 
@@ -275,9 +277,9 @@ Suggested/used backup name pattern:
 /mnt/storage/backups/<date>/srv-docker-after-smsbot-recently-added-tv-queue-test.tar.gz
 ```
 
-A new backup should be made after audit logging is considered final.
+Backup also completed after audit logging was added and tested.
 
-Suggested backup name pattern:
+Suggested/used backup name pattern:
 
 ```text
 /mnt/storage/backups/<date>/srv-docker-after-smsbot-audit-log.tar.gz
@@ -294,7 +296,7 @@ Suggested backup name pattern:
 
 ## Next improvements
 
-1. Back up `/srv/docker` after the audit log checkpoint.
-2. Improve already-requested/already-available messages from Seerr.
-3. Clean up `Recently added` title formatting if filesystem names are too messy.
-4. Choose and configure a real SMS provider/number only after local behavior is stable.
+1. Improve already-requested/already-available messages from Seerr.
+2. Clean up `Recently added` title formatting if filesystem names are too messy.
+3. Choose and configure a real SMS provider/number only after local behavior is stable.
+4. Build repeatable/off-server backups before adding Immich.
