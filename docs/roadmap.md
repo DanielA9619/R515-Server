@@ -68,6 +68,7 @@ This is the current planned build order for the R515 home server.
 - SMS bot help command and TV search tested successfully
 - SMS bot `Status` command tested successfully against Seerr and qBittorrent
 - SMS bot `Downloads` command tested successfully and adjusted to hide completed/seeding torrents
+- SMS bot `Recently added` command tested successfully against the read-only `/media` mount
 - AdGuard Home installed in Docker
 - AdGuard Home dashboard reachable on the LAN
 - AdGuard Home upstream DNS configured and server-side DNS tests passed
@@ -129,10 +130,11 @@ The bot should remain LAN-only unless remote/SMS provider ingress is intentional
 Next useful bot features:
 
 1. Confirm TV request submission works end-to-end.
-2. Add `Recently added` command.
-3. Add better error handling for already-requested or already-available items.
-4. Add simple audit logging for sender, command, action, and result.
+2. Improve already-requested or already-available messages from Seerr.
+3. Add simple audit logging for sender, command, action, and result.
+4. Clean up `Recently added` title formatting if filesystem names are too messy.
 5. Only after local behavior is stable, connect a real SMS provider/number.
+6. Back up `/srv/docker` after the `Recently added` checkpoint.
 
 ## Next major tasks
 
