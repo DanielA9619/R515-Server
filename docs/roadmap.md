@@ -66,7 +66,8 @@ This is the current planned build order for the R515 home server.
 - SMS bot local health endpoint tested successfully
 - SMS bot movie search and request flow tested successfully against Seerr
 - SMS bot help command and TV search tested successfully
-- SMS bot TV season request confirmation tested successfully against Seerr
+- SMS bot TV season request confirmation tested successfully: `TV Silo season 2` -> `1` submitted to Seerr and added items to the Sonarr queue
+- The Silo queued items were manually deleted by the user before download, so no qBittorrent download was expected after that test
 - SMS bot `Status` command tested successfully against Seerr and qBittorrent
 - SMS bot `Downloads` command tested successfully and adjusted to hide completed/seeding torrents
 - SMS bot `Recently added` command tested successfully against the read-only `/media` mount
@@ -74,7 +75,6 @@ This is the current planned build order for the R515 home server.
 - AdGuard Home dashboard reachable on the LAN
 - AdGuard Home upstream DNS configured and server-side DNS tests passed
 - AdGuard Home blocking confirmed with `doubleclick.net` resolving to `0.0.0.0` / `::`
-- One iPhone was manually pointed to AdGuard DNS and appeared in the AdGuard query log after the correct DNS IP was used
 - Main/default UniFi LAN DHCP DNS changed to `192.168.10.135`
 - Whole-LAN AdGuard DNS rollout confirmed working by the user
 - Fresh backup completed after AdGuard Home whole-LAN rollout
@@ -92,14 +92,12 @@ Current validated flow:
 SMS bot local test -> Seerr -> Radarr/Sonarr -> Prowlarr -> qBittorrent through Gluetun -> /mnt/storage/downloads -> /mnt/storage/media -> Jellyfin
 ```
 
-The SMS bot successfully submitted a TV season request to Seerr. The current follow-up is to check why that request did not immediately create an active qBittorrent download.
+Validated SMS request tests:
 
-Next controlled checks:
-
-1. Check the request in Seerr -> Requests.
-2. Check Sonarr -> Activity -> Queue.
-3. Check Sonarr -> Wanted -> Manual Search for the requested season/episodes.
-4. Confirm whether the season is already monitored/available, waiting for approval, or simply had no release grabbed.
+1. Movie search and request submission works through Seerr.
+2. TV search works for season-specific requests.
+3. TV season request confirmation works: the Silo season 2 test submitted to Seerr and added items to the Sonarr queue.
+4. qBittorrent showed no new active download only because the queued Silo items were deleted manually from Sonarr before they could download.
 5. Keep SMS bot local/LAN-only until a real SMS provider ingress is intentionally designed.
 
 ### Media library maintenance
@@ -115,21 +113,7 @@ Tasks:
 
 ## Immediate next step
 
-### 1. Check the latest TV request result
-
-The SMS bot accepted the TV request, but qBittorrent reported no active downloads afterward.
-
-Check:
-
-```text
-Seerr -> Requests
-Sonarr -> Activity -> Queue
-Sonarr -> Wanted -> Manual Search
-```
-
-This will show whether the request is waiting, already available, blocked by a quality/profile rule, or simply did not find a healthy release.
-
-### 2. Add/confirm SMS bot monitoring/dashboard
+### 1. Add/confirm SMS bot monitoring/dashboard
 
 Add or confirm the local SMS bot service in:
 
@@ -139,6 +123,16 @@ Homarr -> http://192.168.10.135:5070/health or an internal note/card for the SMS
 ```
 
 The bot should remain LAN-only unless remote/SMS provider ingress is intentionally designed.
+
+### 2. Back up after the latest SMS bot changes
+
+After the `Recently added` command and TV request confirmation are considered final, make another `/srv/docker` backup.
+
+Suggested backup name:
+
+```text
+/mnt/storage/backups/<date>/srv-docker-after-smsbot-recently-added-tv-queue-test.tar.gz
+```
 
 ## Next major tasks
 
@@ -171,7 +165,7 @@ Current status:
 - `/health` returns `{"status":"ok"}`.
 - Movie search and request flow works through Seerr.
 - Help command works.
-- TV search and TV season request submission work through Seerr.
+- TV search and TV season request submission work through Seerr/Sonarr.
 - `Status` reports Seerr/qBittorrent health, active/stalled/complete counts, and aggregate speed.
 - `Downloads` reports not-yet-complete qBittorrent downloads and hides completed/seeding torrents.
 - `Recently added` reports newest imported media from the read-only `/media` mount.
@@ -182,7 +176,6 @@ Next bot features:
 2. Add simple audit logging for sender, command, action, and result.
 3. Clean up `Recently added` title formatting if filesystem names are too messy.
 4. Only after local behavior is stable, connect a real SMS provider/number.
-5. Back up `/srv/docker` after the `Recently added` checkpoint.
 
 ### 5. Monitor AdGuard Home
 
