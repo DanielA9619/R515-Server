@@ -33,6 +33,7 @@ Health:    http://192.168.10.135:5070/health
 Webhook:   http://192.168.10.135:5070/sms
 App path:  /srv/docker/smsbot/app.py
 Data path: /srv/docker/smsbot/data
+Media RO:  /mnt/storage/media -> /media:ro
 ```
 
 Current commands tested:
@@ -44,6 +45,7 @@ TV <title>
 TV <title> season 2
 Status
 Downloads
+Recently added
 Cancel
 ```
 
@@ -56,6 +58,7 @@ Validated behavior:
 - `TV Silo season 2` returns a numbered TV result from Seerr.
 - `Status` reports Seerr and qBittorrent status plus active/stalled/complete download counts.
 - `Downloads` reports not-yet-complete qBittorrent downloads and filters out completed/seeding torrents.
+- `Recently added` scans the read-only `/media` mount and returns newest imported movie/TV media files.
 - A fresh `/srv/docker` backup was completed after the status/downloads commands were working.
 
 ## Docker Compose pattern
@@ -81,6 +84,7 @@ smsbot:
     - "5070:5070"
   volumes:
     - /srv/docker/smsbot/data:/app/data
+    - /mnt/storage/media:/media:ro
 ```
 
 ## Environment variables
@@ -159,6 +163,14 @@ curl -X POST http://192.168.10.135:5070/sms \
   -d '{"From":"+15555550123","Body":"Downloads"}'
 ```
 
+Recently added:
+
+```bash
+curl -X POST http://192.168.10.135:5070/sms \
+  -H "Content-Type: application/json" \
+  -d '{"From":"+15555550123","Body":"Recently added"}'
+```
+
 ## qBittorrent integration note
 
 The bot logs into qBittorrent's Web API.
@@ -168,6 +180,17 @@ Observed successful setup behavior:
 - qBittorrent API access worked after `QB_URL`, `QB_USERNAME`, and `QB_PASSWORD` were passed into the container.
 - This setup returned `HTTP 204` from the qBittorrent login endpoint, so the bot treats `204 No Content` as success in addition to the older `200 Ok.` response.
 - The `Downloads` command was adjusted to hide completed/seeding torrents so it only shows not-yet-complete downloads.
+
+## Recently added integration note
+
+The `Recently added` command currently uses the filesystem, not the Jellyfin API.
+
+Current behavior:
+
+- The container mounts `/mnt/storage/media` read-only at `/media`.
+- The bot scans video files under `/media`.
+- Results are sorted by file modification time.
+- The command intentionally shows imported library media, not unfinished files in `/mnt/storage/downloads/complete`.
 
 ## Monitoring and dashboard
 
@@ -208,6 +231,8 @@ Suggested/used backup name pattern:
 /mnt/storage/backups/<date>/srv-docker-after-smsbot-status-downloads.tar.gz
 ```
 
+A new backup should be made after the `Recently added` command is considered final.
+
 ## Safety rules
 
 - Keep the bot LAN-only during local testing.
@@ -220,7 +245,8 @@ Suggested/used backup name pattern:
 ## Next improvements
 
 1. Confirm TV request selection submits all the way through Seerr and Sonarr.
-2. Add `Recently added` using Jellyfin or filesystem/library data.
-3. Improve already-requested/already-available messages from Seerr.
-4. Add a simple audit log for sender, command, action, and result.
+2. Improve already-requested/already-available messages from Seerr.
+3. Add a simple audit log for sender, command, action, and result.
+4. Clean up `Recently added` title formatting if filesystem names are too messy.
 5. Choose and configure a real SMS provider/number only after local behavior is stable.
+6. Back up `/srv/docker` after the `Recently added` checkpoint.
