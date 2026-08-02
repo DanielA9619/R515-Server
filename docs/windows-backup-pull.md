@@ -31,6 +31,8 @@ srv-docker-after-smsbot-recently-added-tv-queue-test.tar.gz
 srv-docker-after-smsbot-audit-log.tar.gz
 ```
 
+The reusable PowerShell pull script was created and tested. It now shows progress/ETA while copying large files.
+
 ## Pull script
 
 Save this on the Windows PC as:
