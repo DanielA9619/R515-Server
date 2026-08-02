@@ -76,6 +76,8 @@ This is the current planned build order for the R515 home server.
 - Fresh backup completed after SMS bot audit logging was added and tested
 - Initial periodic PC copy of `/mnt/storage/backups` to Windows started with Robocopy
 - Verified the 2026-07-30 SMS/audit backup folder copied to the Windows PC with Robocopy
+- Windows backup pull script created and tested with Robocopy progress/ETA output
+- SMS bot monitoring/dashboard entries added or confirmed in Uptime Kuma and Homarr
 - AdGuard Home installed in Docker
 - AdGuard Home dashboard reachable on the LAN
 - AdGuard Home upstream DNS configured and server-side DNS tests passed
@@ -106,12 +108,13 @@ srv-docker-after-smsbot-recently-added-tv-queue-test.tar.gz
 srv-docker-after-smsbot-audit-log.tar.gz
 ```
 
+The reusable Windows script `D:\R515-Backups\pull-r515-backups.ps1` was tested and shows Robocopy progress/ETA output. Details are tracked in `docs/windows-backup-pull.md`.
+
 Recommended next improvements:
 
-1. Turn the Robocopy command into a saved Windows script.
+1. Add a short restore procedure so the backups are actually usable during recovery.
 2. Optionally create a Windows Scheduled Task to run the pull periodically.
-3. Add a short restore procedure so the backups are actually usable during recovery.
-4. Later, add a second destination such as an external drive or cloud/object storage before trusting Immich with irreplaceable photos.
+3. Later, add a second destination such as an external drive or cloud/object storage before trusting Immich with irreplaceable photos.
 
 ### Media request and search/import testing
 
@@ -131,7 +134,8 @@ Validated SMS request tests:
 4. qBittorrent showed no new active download only because the queued Silo items were deleted manually from Sonarr before they could download.
 5. `Status`, `Downloads`, and `Recently added` work locally.
 6. SMS audit logging works locally.
-7. Keep SMS bot local/LAN-only until a real SMS provider ingress is intentionally designed.
+7. SMS bot is tracked in the local monitoring/dashboard stack.
+8. Keep SMS bot local/LAN-only until a real SMS provider ingress is intentionally designed.
 
 ### Media library maintenance
 
@@ -146,34 +150,33 @@ Tasks:
 
 ## Immediate next step
 
-### 1. Make the PC backup pull repeatable
+### 1. Do a safe restore-read test
 
-Create a Windows script that pulls server backups from Samba to the PC.
+Purpose: prove that the backups can actually be opened and inspected without restoring over the live server.
 
-Current command pattern:
+Recommended safe test:
 
-```powershell
-robocopy "\\192.168.10.135\media\backups" "D:\R515-Backups\backups" /E /R:2 /W:5 /FFT /COPY:DAT /DCOPY:DAT /NP /LOG+:"D:\R515-Backups\backup-copy.log"
-```
+1. Pick the newest `/srv/docker` backup archive.
+2. Extract it into a temporary test folder under `/tmp`.
+3. Confirm key files exist in the extracted copy, such as `docker-compose.yml`, `smsbot/app.py`, and app config folders.
+4. Do not overwrite the live `/srv/docker` folder during this test.
 
-Use the script manually after major server changes, or schedule it later once the behavior is familiar.
+### 2. Write a restore procedure
 
-### 2. Add/confirm SMS bot monitoring/dashboard
+After the safe restore-read test works, document the basic emergency process:
 
-Add or confirm the local SMS bot service in:
-
-```text
-Uptime Kuma -> http://192.168.10.135:5070/health
-Homarr -> http://192.168.10.135:5070/health or an internal note/card for the SMS bot
-```
-
-The bot should remain LAN-only unless remote/SMS provider ingress is intentionally designed.
+1. Reinstall Docker/Compose on a new Debian VM.
+2. Restore `/srv/docker` from the chosen backup archive.
+3. Restore `/etc/samba/smb.conf` if needed.
+4. Reconnect `/mnt/storage`.
+5. Start containers with `docker compose up -d`.
+6. Validate key services.
 
 ## Next major tasks
 
 ### 3. Improve backups
 
-Current backups exist, and periodic manual Robocopy to the Windows PC has started. The next improvement is making the copy repeatable and adding a clear restore plan.
+Current backups exist, manual Robocopy to the Windows PC works, and the reusable Windows pull script has been tested. The next improvement is documenting restoration and optionally scheduling the PC copy.
 
 Recommended backup targets:
 
@@ -232,6 +235,7 @@ Current status:
 - `Downloads` reports not-yet-complete qBittorrent downloads and hides completed/seeding torrents.
 - `Recently added` reports newest imported media from the read-only `/media` mount.
 - Audit logging writes JSON-lines records under `/srv/docker/smsbot/data/audit.log`.
+- SMS bot is tracked locally in Uptime Kuma and Homarr.
 
 Next bot features:
 
