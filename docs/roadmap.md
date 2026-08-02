@@ -75,6 +75,7 @@ This is the current planned build order for the R515 home server.
 - Audit logging added to SMS bot and tested with JSON-lines records under `/srv/docker/smsbot/data/audit.log`
 - Fresh backup completed after SMS bot audit logging was added and tested
 - Initial periodic PC copy of `/mnt/storage/backups` to Windows started with Robocopy
+- Verified the 2026-07-30 SMS/audit backup folder copied to the Windows PC with Robocopy
 - AdGuard Home installed in Docker
 - AdGuard Home dashboard reachable on the LAN
 - AdGuard Home upstream DNS configured and server-side DNS tests passed
@@ -96,14 +97,21 @@ Windows PC copy:    D:\R515-Backups\backups
 Samba path:         \\192.168.10.135\media\backups
 ```
 
-Robocopy from Windows has copied the existing backup tree to the PC. The next check is to confirm that the newest SMS/audit backup files exist on the R515 and were copied to the PC, because the Windows listing did not clearly show every newest backup file.
+Manual Robocopy from Windows has been tested. The `2026-07-30` backup folder is visible through Samba and the following newest SMS bot backup files were confirmed copied to the Windows PC:
 
-Recommended next checks:
+```text
+srv-docker-after-smsbot-jellyfin-media-fixes.tar.gz
+srv-docker-after-smsbot-status-downloads.tar.gz
+srv-docker-after-smsbot-recently-added-tv-queue-test.tar.gz
+srv-docker-after-smsbot-audit-log.tar.gz
+```
 
-1. On Debian, run `date` to confirm the VM clock is correct.
-2. On Debian, list `/mnt/storage/backups` and verify the latest `srv-docker-after-smsbot-audit-log.tar.gz` backup exists.
-3. On Windows, rerun Robocopy after confirming the source backup files exist.
-4. Later, turn the Robocopy command into a Windows Scheduled Task if this approach works well.
+Recommended next improvements:
+
+1. Turn the Robocopy command into a saved Windows script.
+2. Optionally create a Windows Scheduled Task to run the pull periodically.
+3. Add a short restore procedure so the backups are actually usable during recovery.
+4. Later, add a second destination such as an external drive or cloud/object storage before trusting Immich with irreplaceable photos.
 
 ### Media request and search/import testing
 
@@ -138,18 +146,17 @@ Tasks:
 
 ## Immediate next step
 
-### 1. Verify newest backups copied to the PC
+### 1. Make the PC backup pull repeatable
 
-The first Robocopy run copied existing backups to the PC, but the Windows listing should be checked against the R515 source tree.
+Create a Windows script that pulls server backups from Samba to the PC.
 
-Run on Debian:
+Current command pattern:
 
-```bash
-date
-find /mnt/storage/backups -type f -printf "%TY-%Tm-%Td %TH:%TM  %s bytes  %p\n" | sort
+```powershell
+robocopy "\\192.168.10.135\media\backups" "D:\R515-Backups\backups" /E /R:2 /W:5 /FFT /COPY:DAT /DCOPY:DAT /NP /LOG+:"D:\R515-Backups\backup-copy.log"
 ```
 
-Then rerun the Windows Robocopy pull if the newest files are present on the server but missing from `D:\R515-Backups\backups`.
+Use the script manually after major server changes, or schedule it later once the behavior is familiar.
 
 ### 2. Add/confirm SMS bot monitoring/dashboard
 
