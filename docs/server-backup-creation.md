@@ -28,6 +28,16 @@ Reported size:
 2.7G
 ```
 
+The new backup was then pulled to the Windows PC with the tested PowerShell/Robocopy script.
+
+Confirmed Windows copy:
+
+```text
+D:\R515-Backups\backups\2026-08-02\r515-configs-after-restore-read-test-2026-08-02-032545.tar.gz
+```
+
+Robocopy reported exit code `1`, which is expected for a successful run where at least one file was copied. The run copied the new `2026-08-02` directory and the 2.6G backup file.
+
 ## Script contents
 
 ```bash
