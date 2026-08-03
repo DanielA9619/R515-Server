@@ -78,6 +78,10 @@ This is the current planned build order for the R515 home server.
 - Verified the 2026-07-30 SMS/audit backup folder copied to the Windows PC with Robocopy
 - Windows backup pull script created and tested with Robocopy progress/ETA output
 - SMS bot monitoring/dashboard entries added or confirmed in Uptime Kuma and Homarr
+- Twilio preparation started, then intentionally paused: the `twilio` Python package is installed, the local `/sms` endpoint still works, and `/twilio-sms` exists but correctly rejects unsigned requests with `403 Forbidden`
+- Restore-read test completed successfully against the newest SMS/audit backup without overwriting live files
+- Repeatable Debian-side config backup script installed and tested at `/srv/docker/scripts/backup-r515-configs.sh`
+- New backup from the Debian-side script was copied to the Windows PC with Robocopy
 - AdGuard Home installed in Docker
 - AdGuard Home dashboard reachable on the LAN
 - AdGuard Home upstream DNS configured and server-side DNS tests passed
@@ -110,11 +114,42 @@ srv-docker-after-smsbot-audit-log.tar.gz
 
 The reusable Windows script `D:\R515-Backups\pull-r515-backups.ps1` was tested and shows Robocopy progress/ETA output. Details are tracked in `docs/windows-backup-pull.md`.
 
+The Debian-side backup script is installed at:
+
+```text
+/srv/docker/scripts/backup-r515-configs.sh
+```
+
+Current manual rhythm:
+
+1. Create a config backup on Debian with `/srv/docker/scripts/backup-r515-configs.sh <label>`.
+2. Pull backups to the Windows PC with `D:\R515-Backups\pull-r515-backups.ps1`.
+3. Confirm the new file appears under `D:\R515-Backups\backups`.
+
 Recommended next improvements:
 
-1. Add a short restore procedure so the backups are actually usable during recovery.
-2. Optionally create a Windows Scheduled Task to run the pull periodically.
-3. Later, add a second destination such as an external drive or cloud/object storage before trusting Immich with irreplaceable photos.
+1. Optionally create a Windows Scheduled Task to run the pull periodically.
+2. Later, add a second destination such as an external drive or cloud/object storage before trusting Immich with irreplaceable photos.
+3. Before Immich, make sure the Immich app database and photo library will have a database-aware backup plan.
+
+### SMS request bot
+
+Current status:
+
+- Local FastAPI SMS bot is running on port `5070`.
+- `/health` returns `{"status":"ok"}`.
+- `/sms` works locally for approved sender testing.
+- Movie search and request flow works through Seerr.
+- Help command works.
+- TV search and TV season request submission work through Seerr/Sonarr.
+- `Status` reports Seerr/qBittorrent health, active/stalled/complete counts, and aggregate speed.
+- `Downloads` reports not-yet-complete qBittorrent downloads and hides completed/seeding torrents.
+- `Recently added` reports newest imported media from the read-only `/media` mount.
+- Audit logging writes JSON-lines records under `/srv/docker/smsbot/data/audit.log`.
+- SMS bot is tracked locally in Uptime Kuma and Homarr.
+- Twilio prep is paused by choice. `/twilio-sms` exists and rejects unsigned requests with `403 Forbidden`, but no real Twilio Auth Token has been added and no public Caddy route should be enabled yet.
+
+Hold SMS work until the user explicitly wants to resume it.
 
 ### Media request and search/import testing
 
@@ -150,58 +185,55 @@ Tasks:
 
 ## Immediate next step
 
-### 1. Do a safe restore-read test
+### 1. Immich prep / photo-server planning
 
-Purpose: prove that the backups can actually be opened and inspected without restoring over the live server.
+Purpose: prepare for self-hosted photo backup without rushing into a setup that could risk irreplaceable photos.
 
-Recommended safe test:
+Before installing Immich:
 
-1. Pick the newest `/srv/docker` backup archive.
-2. Extract it into a temporary test folder under `/tmp`.
-3. Confirm key files exist in the extracted copy, such as `docker-compose.yml`, `smsbot/app.py`, and app config folders.
-4. Do not overwrite the live `/srv/docker` folder during this test.
+1. Check current disk usage and available free space on `/mnt/storage`.
+2. Decide where Immich library files should live, likely under `/mnt/storage/photos` or a dedicated `/mnt/storage/immich` tree.
+3. Decide whether phone uploads will be the primary copy or just a backup copy.
+4. Create a database-aware backup plan for Immich/Postgres before trusting it with real photos.
+5. Keep Immich LAN-only at first.
 
-### 2. Write a restore procedure
+### 2. Optional backup polish
 
-After the safe restore-read test works, document the basic emergency process:
+Optional next backup improvements:
 
-1. Reinstall Docker/Compose on a new Debian VM.
-2. Restore `/srv/docker` from the chosen backup archive.
-3. Restore `/etc/samba/smb.conf` if needed.
-4. Reconnect `/mnt/storage`.
-5. Start containers with `docker compose up -d`.
-6. Validate key services.
+1. Add a Windows Scheduled Task for `D:\R515-Backups\pull-r515-backups.ps1`.
+2. Add a second destination later, such as an external drive or cloud/object storage.
+3. Consider stopping selected containers or using app-native database backups for more consistent archives.
 
 ## Next major tasks
 
-### 3. Improve backups
+### 3. Add Immich
 
-Current backups exist, manual Robocopy to the Windows PC works, and the reusable Windows pull script has been tested. The next improvement is documenting restoration and optionally scheduling the PC copy.
+Purpose: self-hosted photo backup and photo library.
 
-Recommended backup targets:
+Important before installing:
 
-```text
-/srv/docker
-/etc/samba/smb.conf
-Home Assistant backups
-Important media/config metadata
-```
+- Plan backup strategy before trusting it with irreplaceable photos.
+- Immich changes quickly, so keep the stack documented and backed up.
+- Do not expose publicly until authentication, backups, and updates are understood.
 
-Store source backups under:
+### 4. Monitor AdGuard Home
 
-```text
-/mnt/storage/backups
-```
+Current status:
 
-Keep periodic PC copies under:
+- AdGuard Home is installed and working on `docker01`.
+- DNS resolution from the Debian VM to `192.168.10.135:53` works.
+- Blocking test works: `doubleclick.net` returns blocked addresses.
+- Main/default UniFi LAN is now using `192.168.10.135` as DHCP DNS.
+- iPhones may keep Limit IP Address Tracking / Private Relay enabled, accepting partial filtering on those devices.
 
-```text
-D:\R515-Backups\backups
-```
+Recommended approach:
 
-A later improvement should add a second destination, such as an external drive or cloud/object storage, especially before trusting Immich with irreplaceable photos.
+1. Watch the AdGuard query log for new clients.
+2. If something breaks, check the AdGuard query log and temporarily allow the blocked domain if needed.
+3. Keep the router/gateway DNS rollback plan ready so the network can be reverted quickly.
 
-### 4. Remote access redesign thought
+### 5. Remote access redesign thought
 
 It may be useful later to expose selected services through another DuckDNS name or another domain, but this should be treated as a separate remote-access design project.
 
@@ -222,54 +254,7 @@ status.<future-domain-or-duckdns>   -> limited public status page, not the admin
 
 Track details in `docs/domains.md` before implementing anything.
 
-### 5. Continue SMS request bot polish
-
-Current status:
-
-- Local FastAPI SMS bot is running on port `5070`.
-- `/health` returns `{"status":"ok"}`.
-- Movie search and request flow works through Seerr.
-- Help command works.
-- TV search and TV season request submission work through Seerr/Sonarr.
-- `Status` reports Seerr/qBittorrent health, active/stalled/complete counts, and aggregate speed.
-- `Downloads` reports not-yet-complete qBittorrent downloads and hides completed/seeding torrents.
-- `Recently added` reports newest imported media from the read-only `/media` mount.
-- Audit logging writes JSON-lines records under `/srv/docker/smsbot/data/audit.log`.
-- SMS bot is tracked locally in Uptime Kuma and Homarr.
-
-Next bot features:
-
-1. Improve already-requested or already-available messages from Seerr.
-2. Clean up `Recently added` title formatting if filesystem names are too messy.
-3. Only after local behavior is stable, connect a real SMS provider/number.
-
-### 6. Monitor AdGuard Home
-
-Current status:
-
-- AdGuard Home is installed and working on `docker01`.
-- DNS resolution from the Debian VM to `192.168.10.135:53` works.
-- Blocking test works: `doubleclick.net` returns blocked addresses.
-- Main/default UniFi LAN is now using `192.168.10.135` as DHCP DNS.
-- iPhones may keep Limit IP Address Tracking / Private Relay enabled, accepting partial filtering on those devices.
-
-Recommended approach:
-
-1. Watch the AdGuard query log for new clients.
-2. If something breaks, check the AdGuard query log and temporarily allow the blocked domain if needed.
-3. Keep the router/gateway DNS rollback plan ready so the network can be reverted quickly.
-
-### 7. Add Immich
-
-Purpose: self-hosted photo backup and photo library.
-
-Important before installing:
-
-- Plan backup strategy before trusting it with irreplaceable photos.
-- Immich changes quickly, so keep the stack documented and backed up.
-- Do not expose publicly until authentication, backups, and updates are understood.
-
-### 8. Finish Home Assistant migration
+### 6. Finish Home Assistant migration
 
 Home Assistant is currently in a safe paused state.
 
@@ -334,7 +319,7 @@ Safety and permissions:
 - Keep an audit log of senders, commands, actions, and results.
 - Use least-privilege API credentials for Jellyfin, Home Assistant, and request services.
 
-Priority: connect a real SMS provider only after the current local bot, backups, monitoring, and media automation are stable.
+Priority: connect a real SMS provider only after the user wants to resume that project and the Twilio/Auth Token/public webhook pieces are ready.
 
 ## Later possibilities
 
