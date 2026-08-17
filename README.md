@@ -32,6 +32,32 @@ Jellyfin works locally and remotely through:
 https://mediahubdaniel.duckdns.org
 ```
 
+## Quick Access URLs
+
+| Service | URL | Notes |
+|---|---|---|
+| Homarr dashboard | `https://r515.allenfamhouse.com` | Preferred LAN landing page. Uses Caddy internal TLS, so browser trust warnings are expected unless the internal CA is trusted. |
+| Homarr direct | `http://192.168.10.135:7575` | Direct LAN access. |
+| Jellyfin public | `https://mediahubdaniel.duckdns.org` | Only public service currently intended to be exposed through Caddy. |
+| Jellyfin local | `http://192.168.10.135:8096` | LAN-only direct access. |
+| Uptime Kuma | `http://192.168.10.135:3001` | LAN-only monitoring dashboard. |
+| Uptime Kuma status page | `http://192.168.10.135:3001/status/r515` | LAN-only status page. |
+| Portainer | `https://192.168.10.135:9443` | LAN/VPN-only admin service. |
+| Seerr | `http://192.168.10.135:5055` | LAN-only media request frontend. |
+| qBittorrent | `http://192.168.10.135:8080` | LAN-only; traffic routes through Gluetun/Mullvad. |
+| Prowlarr | `http://192.168.10.135:9696` | LAN-only. |
+| Radarr | `http://192.168.10.135:7878` | LAN-only. |
+| Sonarr | `http://192.168.10.135:8989` | LAN-only. |
+| AdGuard Home | `http://192.168.10.135:3002` | LAN-only DNS/ad-blocking admin UI. |
+| Byparr | `http://192.168.10.135:8191` | LAN-only helper service. |
+| SMS bot health | `http://192.168.10.135:5070/health` | LAN-only monitor endpoint; Twilio work is paused. |
+| Home Assistant VM | `http://192.168.10.127:8123` | New HAOS VM, still separate while Pi fallback remains. |
+| Proxmox | `https://192.168.10.50:8006` | LAN/VPN-only hypervisor admin. |
+| Samba share | `\\192.168.10.135\media` | Windows file share to `/mnt/storage`. |
+| Backup pull script on Windows | `D:\R515-Backups\pull-r515-backups.ps1` | Pulls `/mnt/storage/backups` to the PC with Robocopy. |
+
+Remote access note: UniFi Teleport currently works for private remote access. Keep admin services LAN/VPN-only; do not expose them directly through DuckDNS/Caddy.
+
 ## Network
 
 | Device / Service | IP / Address |
@@ -85,6 +111,11 @@ Planned / pending Docker services:
 
 - Immich
 - Backup automation
+- Tdarr test-only media optimization
+
+Possible tooling / non-service additions:
+
+- Wireshark on a workstation or temporary admin VM for packet captures and network troubleshooting
 
 ## Documentation
 
@@ -100,6 +131,9 @@ Planned / pending Docker services:
 - [`docs/service-dashboard.md`](docs/service-dashboard.md) — central service dashboard / landing page plan
 - [`docs/byparr.md`](docs/byparr.md) — Byparr internal helper service notes
 - [`docs/seerr.md`](docs/seerr.md) — Seerr media request frontend notes
+- [`docs/windows-backup-pull.md`](docs/windows-backup-pull.md) — Windows Robocopy backup pull script
+- [`docs/server-backup-creation.md`](docs/server-backup-creation.md) — Debian-side backup creation script
+- [`docs/restore-procedure.md`](docs/restore-procedure.md) — restore-read test and emergency restore outline
 
 ## Completed Major Milestones
 
@@ -130,18 +164,22 @@ Planned / pending Docker services:
 - Local SMS request bot installed on port `5070`
 - SMS bot movie search/request, TV search, help, status, downloads, and recently-added commands tested locally
 - SMS bot added/ready for Uptime Kuma and Homarr local tracking
+- SMS/Twilio preparation paused safely: `/twilio-sms` exists and rejects unsigned requests, but no Twilio token or public route is active
+- Debian-side backup script installed and tested
+- Windows Robocopy backup pull script installed and tested with progress/ETA output
+- Restore-read test passed without overwriting live files
 - Fresh backup completed after qBittorrent + VPN setup
 - Fresh backup completed after AdGuard Home whole-LAN rollout
 - Fresh backup completed after SMS bot status/downloads, Jellyfin plugin DNS, and media audio-default fixes
 
 ## Current Priorities
 
-1. Add/confirm SMS bot in Homarr and Uptime Kuma if not already done.
-2. Finish SMS request bot polish: confirm TV request submission end-to-end, improve already-requested/already-available responses, and decide whether `Recently added` title cleanup is worth it.
+1. Decide next tooling direction: Tdarr test-only media optimization, Wireshark troubleshooting workflow, Home Assistant migration, or Immich prep.
+2. Keep using the backup rhythm: create a Debian-side config backup, then pull it to the Windows PC.
 3. Run periodic media library maintenance checks for audio default flags and Jellyfin/plugin connectivity.
-4. Build a safer backup plan, including off-server backups, before adding Immich.
-5. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
-6. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
+4. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
+5. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
+6. Keep SMS/Twilio paused until intentionally resumed.
 
 ## Important Safety Notes
 
