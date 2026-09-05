@@ -121,6 +121,7 @@ Possible tooling / non-service additions:
 
 - [`docs/current-config.md`](docs/current-config.md) — current known server configuration
 - [`docs/domains.md`](docs/domains.md) — service domains, internal DNS names, and local URLs
+- [`docs/media-request-workflow.md`](docs/media-request-workflow.md) — streamlined movie/TV request workflow and search troubleshooting plan
 - [`docs/media-library-maintenance.md`](docs/media-library-maintenance.md) — periodic Jellyfin/media cleanup checks, including audio default flags
 - [`docs/sms-bot.md`](docs/sms-bot.md) — local SMS request bot setup, commands, tests, and safety notes
 - [`docs/roadmap.md`](docs/roadmap.md) — service build order and priorities
@@ -129,7 +130,7 @@ Possible tooling / non-service additions:
 - [`docs/qbittorrent-vpn.md`](docs/qbittorrent-vpn.md) — qBittorrent + Mullvad/Gluetun setup notes
 - [`docs/adguard-home.md`](docs/adguard-home.md) — AdGuard Home setup and rollout notes
 - [`docs/service-dashboard.md`](docs/service-dashboard.md) — central service dashboard / landing page plan
-- [`docs/byparr.md`](docs/byparr.md) — Byparr internal helper service notes
+- [`docs/byparr.md`](docs/byparr.md) — Byparr internal helper service notes and recovery procedure
 - [`docs/seerr.md`](docs/seerr.md) — Seerr media request frontend notes
 - [`docs/windows-backup-pull.md`](docs/windows-backup-pull.md) — Windows Robocopy backup pull script
 - [`docs/server-backup-creation.md`](docs/server-backup-creation.md) — Debian-side backup creation script
@@ -153,6 +154,7 @@ Possible tooling / non-service additions:
 - Uptime Kuma DNS issue fixed so the public Jellyfin monitor can resolve `mediahubdaniel.duckdns.org`
 - Jellyfin plugin catalog DNS issue fixed by explicitly using AdGuard DNS (`192.168.10.135`) in Docker Compose
 - Byparr added as an internal helper service on port `8191`
+- Byparr hard-recreate recovery documented after a 500/Internal Server Error issue was fixed
 - Prowlarr indexers added and confirmed working by the user
 - Seerr installed as the LAN-only media request frontend on port `5055`
 - Seerr connected to Jellyfin, Radarr, and Sonarr
@@ -174,12 +176,13 @@ Possible tooling / non-service additions:
 
 ## Current Priorities
 
-1. Decide next tooling direction: Tdarr test-only media optimization, Wireshark troubleshooting workflow, Home Assistant migration, or Immich prep.
-2. Keep using the backup rhythm: create a Debian-side config backup, then pull it to the Windows PC.
-3. Run periodic media library maintenance checks for audio default flags and Jellyfin/plugin connectivity.
-4. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
-5. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
-6. Keep SMS/Twilio paused until intentionally resumed.
+1. Streamline media request workflow: use Homarr as the daily launchpad, Seerr as the normal request UI, and Radarr/Sonarr only for advanced interactive search.
+2. Decide next tooling direction: Tdarr test-only media optimization, Wireshark troubleshooting workflow, Home Assistant migration, or Immich prep.
+3. Keep using the backup rhythm: create a Debian-side config backup, then pull it to the Windows PC.
+4. Run periodic media library maintenance checks for audio default flags and Jellyfin/plugin connectivity.
+5. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
+6. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
+7. Keep SMS/Twilio paused until intentionally resumed.
 
 ## Important Safety Notes
 
