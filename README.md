@@ -63,7 +63,7 @@ Caddy serves the private hostnames with internal TLS and an explicit `private_on
 | Portainer | `https://portainer.r515.allenfamhouse.com` | Docker admin. |
 | AdGuard Home | `https://adguard.r515.allenfamhouse.com` | DNS/admin UI. |
 | Proxmox | `https://proxmox.r515.allenfamhouse.com` | Hypervisor admin. |
-| Home Assistant | `https://ha.r515.allenfamhouse.com` | Caddy route active; HA trusted-proxy config still pending. |
+| Home Assistant | `https://ha.r515.allenfamhouse.com` | Caddy route active; HA trusted-proxy setting still pending. |
 | Jellyfin internal | `https://jellyfin.r515.allenfamhouse.com` | Private LAN/Teleport alias. |
 | Jellyfin public | `https://mediahubdaniel.duckdns.org` | Public Caddy route. |
 
@@ -174,17 +174,17 @@ A stale single-file Caddy bind-mount issue was repaired by recreating only the C
 After the internal-domain rollout:
 
 ```text
-Quick Links      200
-Seerr            307
-Radarr           302
-Sonarr           302
-qBittorrent      200
-Uptime Kuma      302
-Prowlarr         302
-Portainer        200
-AdGuard          302
-Proxmox          200
-Homarr           200
+Quick Links       200
+Seerr             307
+Radarr            302
+Sonarr            302
+qBittorrent       200
+Uptime Kuma       302
+Prowlarr          302
+Portainer         200
+AdGuard           302
+Proxmox           200
+Homarr            200
 Jellyfin internal 302
 Jellyfin public   302
 Home Assistant    400 (expected until trusted proxy is configured)
@@ -194,16 +194,19 @@ Caddy also successfully resolved and reached the Let's Encrypt ACME endpoint aft
 
 ## Home Assistant Remaining Step
 
-The clean Caddy route exists, but Home Assistant must trust the reverse proxy. If the HA log confirms the rejected proxy source is `192.168.10.135`, add:
+Home Assistant 2026.8+ exposes reverse-proxy trust in the UI. Go to:
 
-```yaml
-http:
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - 192.168.10.135
+```text
+Settings -> System -> Network -> HTTP server
 ```
 
-Then validate/restart Home Assistant and test `https://ha.r515.allenfamhouse.com` again.
+Turn on **Trust X-Forwarded-For** and add `192.168.10.135` under **Trusted proxies**. Save the HTTP server settings; Home Assistant restarts and then asks an administrator to confirm the new settings. If the clean HA URL still returns `400`, check the HA log and use the exact rejected proxy source instead.
+
+Then test:
+
+```text
+https://ha.r515.allenfamhouse.com
+```
 
 ## Documentation
 
