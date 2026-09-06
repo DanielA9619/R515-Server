@@ -1,61 +1,19 @@
 # Home Assistant Migration Plan
 
-Goal: move Home Assistant from the Raspberry Pi to a dedicated Home Assistant OS VM on Proxmox.
+Goal: run Home Assistant as a dedicated Home Assistant OS VM on Proxmox rather than on the Raspberry Pi.
 
-## Recommended architecture
+## Current architecture
 
-Run Home Assistant as its own HAOS VM, not inside the Debian Docker VM.
+Home Assistant now runs as its own HAOS VM on the R515 Proxmox host.
 
-Why:
+Why this architecture was chosen:
 
-- Easier add-ons and updates
-- Cleaner backup/restore
-- Better isolation from Jellyfin/Docker services
-- Easier rollback if something breaks
+- cleaner isolation from Docker/Jellyfin services
+- easier HAOS add-ons and updates
+- easier backup/restore
+- simpler rollback while the Raspberry Pi remains available as fallback
 
-## Current decision point
-
-The Raspberry Pi Home Assistant backup is having trouble, and the current setup is not fully built out yet.
-
-Known current state:
-
-- Home Assistant is still on the Raspberry Pi.
-- Current Raspberry Pi Home Assistant IP: `192.168.10.190`.
-- Only around 3 add-ons are installed.
-- Current add-ons/integrations to recreate/document:
-  - HACS
-  - Matter Server
-  - UniFi Network
-- Home Assistant hardware/radio approach: network-based devices, not USB dongles.
-- Remote access is currently enabled.
-- The setup is small enough that a clean rebuild is reasonable.
-
-Recommendation:
-
-If the backup keeps failing, do **not** spend hours fighting it. Build a fresh HAOS VM and manually recreate the current setup.
-
-This is probably better than importing a broken or messy early configuration, especially because the current install is not mature yet.
-
-## Suggested VM resources
-
-Starting point:
-
-| Resource | Suggested value |
-| --- | --- |
-| VM type | Home Assistant OS VM |
-| CPU | 2 cores |
-| RAM | 4 GB |
-| Disk | 32 GB minimum, 64 GB preferred |
-| Network | Bridged to main LAN |
-| IP | Static DHCP reservation after first boot |
-
-These can be adjusted later depending on add-ons, history database size, and integrations.
-
-## HAOS VM created on Proxmox
-
-A dedicated Home Assistant OS VM was created on the Proxmox host `r515`.
-
-VM configuration:
+## Current VM
 
 | Item | Value |
 | --- | --- |
@@ -67,142 +25,103 @@ VM configuration:
 | BIOS | `ovmf` / UEFI |
 | CPU | `host`, 2 cores |
 | RAM | `4096 MB` |
-| Disk | `64 GB` on `scsi0` |
-| EFI disk | `local-lvm:vm-101-disk-1`, 4 MB |
+| Disk | `64 GB` |
 | Network | `virtio`, bridge `vmbr0` |
-| MAC | `BC:24:11:5D:26:8C` |
-| Serial console | `serial0 socket` |
-| VGA | `serial0` |
 | Start at boot | enabled |
-| Status after creation | running |
-| Temporary/current DHCP IP | `192.168.10.127` |
+| Current IP | `192.168.10.127` |
 
-Guest-agent network check showed the LAN interface `enp6s18` with MAC `bc:24:11:5d:26:8c` and IPv4 address `192.168.10.127/24`.
+The Raspberry Pi remains available at `192.168.10.190` as a fallback while the VM is finalized.
 
-Important IP decision:
+## Current HAOS status
 
-- The new HAOS VM will **not** be moved to the old Raspberry Pi IP yet.
-- Keep the new HAOS VM at `192.168.10.127` and reserve that IP in UniFi.
-- Keep the Raspberry Pi Home Assistant at `192.168.10.190` as a fallback for now.
-- Only move the VM to `192.168.10.190` later if there is a clear reason, such as old phone apps, dashboards, tablets, or automations hardcoded to the old IP.
-
-## Fresh HAOS setup status
-
-The new HAOS VM was opened at:
+The fresh HAOS VM is built and usable at:
 
 ```text
 http://192.168.10.127:8123
 ```
 
-A new Home Assistant account was created and the fresh dashboard is accessible.
+Completed on the fresh VM:
 
-Current status:
-
-- New HAOS VM boots successfully.
-- Home Assistant onboarding completed with a new account.
-- User is inside the fresh Home Assistant dashboard.
-- Clean rebuild path chosen instead of fighting the Raspberry Pi backup.
-- The Raspberry Pi Home Assistant should remain available as fallback until the VM is stable.
-
-## Rebuilt add-ons and integrations
-
-Completed on the fresh HAOS VM:
-
-- HACS installed.
-- Matter Server installed.
-- Terminal & SSH installed.
-- Studio Code Server installed.
-- Home Assistant Google Drive Backup installed.
-- UniFi Network integration/add-on work completed by user.
-- Fresh Home Assistant backup made after installing core add-ons.
-
-Next immediate step: reserve the new HAOS VM's current IP `192.168.10.127` in UniFi, then test integrations/devices before retiring the Raspberry Pi.
-
-## Option A: Backup/restore migration
-
-Use this path only if backup starts working cleanly.
-
-### 1. On Raspberry Pi Home Assistant
-
-1. Go to **Settings → System → Backups**.
-2. Create a **full backup**.
-3. Download the backup file to a PC.
-4. Do not wipe or change the Raspberry Pi yet.
-
-### 2. On Proxmox
-
-1. Download the current HAOS KVM/qcow2 image.
-2. Create a new VM.
-3. Import the HAOS disk image.
-4. Attach the imported disk to the VM.
-5. Set boot order to the HAOS disk.
-6. Start the VM.
-7. Let Home Assistant boot fully.
-
-### 3. Restore backup
-
-1. Open the new Home Assistant setup page.
-2. Choose restore from backup.
-3. Upload the full backup from the Raspberry Pi.
-4. Wait for restore and reboot.
-5. Confirm integrations, devices, dashboards, automations, and add-ons work.
-
-## Option B: Clean rebuild migration
-
-Use this path if backup continues failing.
-
-### 1. Before touching the Raspberry Pi
-
-Document the existing Home Assistant setup:
-
-- Screenshot or list all installed add-ons.
-- Screenshot or list all integrations.
-- Screenshot dashboards you care about.
-- Write down any automations, helpers, scenes, scripts, or custom cards worth keeping.
-- Record whether any mobile apps, tablets, bookmarks, or automations point directly to the Raspberry Pi IP.
-- Record current remote access settings before shutting down the Pi.
-
-Current known items to recreate:
-
+- Home Assistant onboarding and account setup
 - HACS
 - Matter Server
-- UniFi Network
-- Network-based Matter/Thread setup, no known USB dongles
-- Remote access setup
+- Terminal & SSH
+- Studio Code Server
+- Home Assistant Google Drive Backup
+- UniFi integration/add-on work
+- fresh HA backup after core setup
 
-### 2. Build the HAOS VM
+The clean-rebuild path was chosen instead of spending more time repairing the Raspberry Pi backup.
 
-1. Create a dedicated HAOS VM in Proxmox.
-2. Start Home Assistant OS.
-3. Complete the initial setup.
-4. Reserve the new HAOS VM IP in UniFi.
-5. Reinstall only the add-ons and integrations you actually use.
+## Clean internal URL
 
-### 3. Rebuild devices and dashboards
+Caddy now has a private internal route for:
 
-Recommended order:
+```text
+https://ha.r515.allenfamhouse.com
+```
 
-1. Core Home Assistant setup and user account.
-2. Network/static IP reservation.
-3. Matter/Thread/Zigbee/Z-Wave integrations.
-4. Important devices.
-5. Add-ons.
-6. Automations.
-7. Dashboards.
-8. Mobile app connection.
-9. Remote access.
+Caddy route:
 
-### 4. Cutover
+```caddyfile
+ha.r515.allenfamhouse.com {
+    import private_only
+    tls internal
+    reverse_proxy 192.168.10.127:8123
+}
+```
 
-1. Make a fresh backup of the new HAOS VM.
-2. Keep the Raspberry Pi Home Assistant running or powered off but untouched as a fallback.
-3. Keep the new HAOS VM at `192.168.10.127` unless there is a reason to reuse `192.168.10.190`.
-4. Update bookmarks, mobile apps, dashboards, and anything else that should use the new VM.
-5. Confirm remote access works on the new VM.
-6. Once the new VM is stable, make another fresh HAOS backup.
+The route is currently reaching Home Assistant but returns HTTP `400` because Home Assistant has not yet been configured to trust the reverse proxy.
 
-## Open details to fill in
+## Remaining reverse-proxy step
 
-- Whether any dashboards, mobile apps, tablets, bookmarks, or automations point directly to `192.168.10.190`
-- Whether Home Assistant uses a custom domain
-- Whether the history database should stay local or eventually move to MariaDB/Postgres
+After requesting `https://ha.r515.allenfamhouse.com`, check the Home Assistant log for the rejected reverse-proxy source IP.
+
+If the log confirms the source as `192.168.10.135`, add this to `/config/configuration.yaml`:
+
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.10.135
+```
+
+Use the exact source IP Home Assistant reports; do not trust `0.0.0.0/0` or unnecessarily broad networks.
+
+Then:
+
+1. Check the Home Assistant configuration.
+2. Restart Home Assistant.
+3. Open `https://ha.r515.allenfamhouse.com` again.
+4. Confirm login, dashboards, integrations, and WebSocket/live updates work normally.
+
+## IP plan
+
+- Keep the HAOS VM at `192.168.10.127` and reserve that address in UniFi.
+- Keep the Raspberry Pi at `192.168.10.190` as fallback for now.
+- Do not reuse the Pi IP unless there is a specific compatibility reason.
+- Update any old bookmarks, mobile apps, dashboards, or automations that still point at the Pi when final cutover is complete.
+
+## Final cutover checklist
+
+1. Finish the reverse-proxy trusted-proxy setting.
+2. Verify devices/integrations on the HAOS VM.
+3. Verify Home Assistant mobile app access.
+4. Verify Matter and UniFi functionality.
+5. Make a fresh HA backup.
+6. Keep the Raspberry Pi untouched until the VM has proven stable.
+7. Add one large R515 dashboard button opening:
+
+```text
+https://links.r515.allenfamhouse.com
+```
+
+This avoids duplicating every individual R515 service inside Home Assistant.
+
+## Safety notes
+
+- Keep `ha.r515.allenfamhouse.com` LAN / UniFi Teleport only.
+- Caddy's `private_only` gate must remain on the Home Assistant site.
+- Trust only the actual reverse-proxy source in `trusted_proxies`.
+- Keep fresh Home Assistant backups before major migration/cutover changes.
+- Do not store Home Assistant credentials, tokens, API keys, or private keys in this repository.
