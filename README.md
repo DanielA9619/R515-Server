@@ -71,6 +71,7 @@ Remote access note: UniFi Teleport currently works for private remote access. Ke
 | Raspberry Pi Home Assistant fallback | `192.168.10.190` |
 | Jellyfin Domain | `mediahubdaniel.duckdns.org` |
 | Homarr / central dashboard domain | `r515.allenfamhouse.com` |
+| DuckDNS public IP observed during setup | `166.70.251.126` |
 
 `192.168.10.135` is reserved in UniFi for the Debian Docker VM.
 
