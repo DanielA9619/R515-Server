@@ -71,29 +71,30 @@ ha.r515.allenfamhouse.com {
 }
 ```
 
-The route is currently reaching Home Assistant but returns HTTP `400` because Home Assistant has not yet been configured to trust the reverse proxy.
+The route reaches Home Assistant but currently returns HTTP `400` because Home Assistant has not yet been configured to trust the reverse proxy.
 
 ## Remaining reverse-proxy step
 
-After requesting `https://ha.r515.allenfamhouse.com`, check the Home Assistant log for the rejected reverse-proxy source IP.
+Home Assistant 2026.8+ exposes HTTP/reverse-proxy settings in the UI.
 
-If the log confirms the source as `192.168.10.135`, add this to `/config/configuration.yaml`:
+Go to:
 
-```yaml
-http:
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - 192.168.10.135
+```text
+Settings -> System -> Network -> HTTP server
 ```
-
-Use the exact source IP Home Assistant reports; do not trust `0.0.0.0/0` or unnecessarily broad networks.
 
 Then:
 
-1. Check the Home Assistant configuration.
-2. Restart Home Assistant.
-3. Open `https://ha.r515.allenfamhouse.com` again.
-4. Confirm login, dashboards, integrations, and WebSocket/live updates work normally.
+1. Turn on **Trust X-Forwarded-For**.
+2. Add the Caddy proxy address to **Trusted proxies**.
+3. The expected proxy source in this setup is `192.168.10.135` because Caddy runs on `docker01` and connects from that Debian VM to the HAOS VM.
+4. Save the HTTP server settings. Home Assistant restarts when these settings are saved.
+5. Confirm the new settings when Home Assistant asks after restart.
+6. Test `https://ha.r515.allenfamhouse.com` again.
+
+If the route still returns HTTP `400`, check the Home Assistant log for the rejected reverse-proxy source and use the exact source IP it reports instead of trusting a broad network.
+
+Do not trust `0.0.0.0/0` or an unnecessarily large network.
 
 ## IP plan
 
@@ -122,6 +123,6 @@ This avoids duplicating every individual R515 service inside Home Assistant.
 
 - Keep `ha.r515.allenfamhouse.com` LAN / UniFi Teleport only.
 - Caddy's `private_only` gate must remain on the Home Assistant site.
-- Trust only the actual reverse-proxy source in `trusted_proxies`.
+- Trust only the actual reverse-proxy source in Home Assistant's Trusted proxies setting.
 - Keep fresh Home Assistant backups before major migration/cutover changes.
 - Do not store Home Assistant credentials, tokens, API keys, or private keys in this repository.
