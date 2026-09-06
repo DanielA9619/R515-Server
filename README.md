@@ -7,90 +7,118 @@ This repo documents Daniel's Dell PowerEdge R515 Proxmox home server build.
 The server is live and currently running:
 
 - Proxmox on the R515
-- Debian Docker VM named `docker01`
-- Jellyfin in Docker
-- Caddy reverse proxy in Docker
-- Samba file share from Debian to Windows
-- DuckDNS updater on Debian
-- NVIDIA Quadro P400 passthrough for Jellyfin hardware transcoding
-- Home Assistant OS VM in Proxmox, currently paused/safe while Raspberry Pi remains as fallback
-- Portainer for Docker management
-- Uptime Kuma for monitoring
-- qBittorrent routed through Gluetun/Mullvad
-- Prowlarr for indexer management
-- Byparr as an internal helper service on port `8191`
-- Radarr for movie automation
-- Sonarr for TV automation
-- Seerr as the LAN-only media request frontend on port `5055`
-- Local SMS request bot on port `5070`
-- AdGuard Home for DNS filtering/ad blocking, now used by the main/default UniFi LAN via DHCP DNS
-- Homarr as the central internal desktop service dashboard / landing page
-- Quick Links as the lightweight mobile-friendly LAN/Teleport launcher on port `8070`
+- Debian Docker VM `docker01`
+- Jellyfin with NVIDIA Quadro P400 hardware transcoding
+- Caddy reverse proxy
+- Samba media share
+- DuckDNS updater
+- Home Assistant OS VM on Proxmox, with the Raspberry Pi still retained as fallback
+- Portainer
+- Uptime Kuma
+- qBittorrent behind Gluetun/Mullvad
+- Prowlarr
+- Byparr
+- Radarr
+- Sonarr
+- Seerr
+- local SMS request bot (provider/Twilio work paused)
+- AdGuard Home as main-LAN DNS
+- Homarr desktop dashboard
+- Quick Links mobile launcher
 
-Jellyfin works locally and remotely through:
+## Public Service
+
+Jellyfin is the only service intentionally exposed publicly:
 
 ```text
 https://mediahubdaniel.duckdns.org
 ```
 
+Ports `80` and `443` on the WAN are forwarded to Caddy. Jellyfin port `8096` is not exposed directly.
+
+## Private R515 Domains
+
+AdGuard provides the private wildcard DNS rewrite:
+
+```text
+*.r515.allenfamhouse.com -> 192.168.10.135
+r515.allenfamhouse.com   -> 192.168.10.135
+```
+
+Caddy serves the private hostnames with internal TLS and an explicit `private_only` source-IP gate. These names are intended for the home LAN and UniFi Teleport, not public access.
+
 ## Quick Access URLs
 
-| Service | URL | Notes |
-|---|---|---|
-| Quick Links | `http://192.168.10.135:8070` | Preferred mobile launcher. LAN / UniFi Teleport only; do not expose publicly. |
-| Homarr dashboard | `https://r515.allenfamhouse.com` | Preferred desktop LAN landing page. Uses Caddy internal TLS, so browser trust warnings are expected unless the internal CA is trusted. |
-| Homarr direct | `http://192.168.10.135:7575` | Direct LAN access. |
-| Jellyfin public | `https://mediahubdaniel.duckdns.org` | Only public service currently intended to be exposed through Caddy. |
-| Jellyfin local | `http://192.168.10.135:8096` | LAN-only direct access. |
-| Uptime Kuma | `http://192.168.10.135:3001` | LAN-only monitoring dashboard. |
-| Uptime Kuma status page | `http://192.168.10.135:3001/status/r515` | LAN-only status page. |
-| Portainer | `https://192.168.10.135:9443` | LAN/VPN-only admin service. |
-| Seerr | `http://192.168.10.135:5055` | LAN-only media request frontend. |
-| qBittorrent | `http://192.168.10.135:8080` | LAN-only; traffic routes through Gluetun/Mullvad. |
-| Prowlarr | `http://192.168.10.135:9696` | LAN-only. |
-| Radarr | `http://192.168.10.135:7878` | LAN-only. |
-| Sonarr | `http://192.168.10.135:8989` | LAN-only. |
-| AdGuard Home | `http://192.168.10.135:3002` | LAN-only DNS/ad-blocking admin UI. |
-| Byparr | `http://192.168.10.135:8191` | LAN-only helper service. |
-| SMS bot health | `http://192.168.10.135:5070/health` | LAN-only monitor endpoint; Twilio work is paused. |
-| Home Assistant VM | `http://192.168.10.127:8123` | New HAOS VM, still separate while Pi fallback remains. |
-| Proxmox | `https://192.168.10.50:8006` | LAN/VPN-only hypervisor admin. |
-| Samba share | `\\192.168.10.135\media` | Windows file share to `/mnt/storage`. |
-| Backup pull script on Windows | `D:\R515-Backups\pull-r515-backups.ps1` | Pulls `/mnt/storage/backups` to the PC with Robocopy. |
+| Service | Preferred URL | Notes |
+| --- | --- | --- |
+| Quick Links | `https://links.r515.allenfamhouse.com` | Preferred mobile launcher; LAN / Teleport only. |
+| Homarr | `https://homarr.r515.allenfamhouse.com` | Preferred desktop dashboard. |
+| Homarr legacy/base | `https://r515.allenfamhouse.com` | Existing Homarr alias. |
+| Seerr | `https://seerr.r515.allenfamhouse.com` | Normal movie/TV request UI. |
+| Radarr | `https://radarr.r515.allenfamhouse.com` | Advanced movie management. |
+| Sonarr | `https://sonarr.r515.allenfamhouse.com` | Advanced TV management. |
+| qBittorrent | `https://qbittorrent.r515.allenfamhouse.com` | Web UI; traffic remains behind Gluetun/Mullvad. |
+| Uptime Kuma | `https://uptime.r515.allenfamhouse.com` | Monitoring dashboard. |
+| Prowlarr | `https://prowlarr.r515.allenfamhouse.com` | Indexer management. |
+| Portainer | `https://portainer.r515.allenfamhouse.com` | Docker admin. |
+| AdGuard Home | `https://adguard.r515.allenfamhouse.com` | DNS/admin UI. |
+| Proxmox | `https://proxmox.r515.allenfamhouse.com` | Hypervisor admin. |
+| Home Assistant | `https://ha.r515.allenfamhouse.com` | Caddy route active; HA trusted-proxy config still pending. |
+| Jellyfin internal | `https://jellyfin.r515.allenfamhouse.com` | Private LAN/Teleport alias. |
+| Jellyfin public | `https://mediahubdaniel.duckdns.org` | Public Caddy route. |
 
-Remote access note: UniFi Teleport currently works for private remote access. Keep admin and internal launcher services LAN/VPN-only; do not expose them directly through DuckDNS/Caddy.
+Direct/raw fallbacks remain available when troubleshooting:
+
+| Service | Direct URL |
+| --- | --- |
+| Quick Links | `http://192.168.10.135:8070` |
+| Homarr | `http://192.168.10.135:7575` |
+| Seerr | `http://192.168.10.135:5055` |
+| Radarr | `http://192.168.10.135:7878` |
+| Sonarr | `http://192.168.10.135:8989` |
+| qBittorrent | `http://192.168.10.135:8080` |
+| Uptime Kuma | `http://192.168.10.135:3001` |
+| Prowlarr | `http://192.168.10.135:9696` |
+| Portainer | `https://192.168.10.135:9443` |
+| AdGuard Home | `http://192.168.10.135:3002` |
+| Proxmox | `https://192.168.10.50:8006` |
+| Home Assistant | `http://192.168.10.127:8123` |
+| Jellyfin | `http://192.168.10.135:8096` |
+| Byparr | `http://192.168.10.135:8191` |
+| SMS bot health | `http://192.168.10.135:5070/health` |
+
+Remote access note: UniFi Teleport is the normal private remote path for these internal services.
 
 ## Network
 
 | Device / Service | IP / Address |
-|---|---|
+| --- | --- |
 | Gateway / Router | `192.168.10.1` |
 | Proxmox Host | `192.168.10.50` |
 | Debian Docker VM `docker01` | `192.168.10.135` |
 | HAOS VM | `192.168.10.127` |
 | Raspberry Pi Home Assistant fallback | `192.168.10.190` |
-| Jellyfin Domain | `mediahubdaniel.duckdns.org` |
-| Homarr / central dashboard domain | `r515.allenfamhouse.com` |
-| DuckDNS public IP observed during setup | `166.70.251.126` |
+| Public Jellyfin domain | `mediahubdaniel.duckdns.org` |
+| Private R515 namespace | `*.r515.allenfamhouse.com` |
 
-`192.168.10.135` is reserved in UniFi for the Debian Docker VM.
+`192.168.10.135` is reserved in UniFi for `docker01`.
 
 ## Hardware
 
 - Dell PowerEdge R515
-- Proxmox installed on system SSD
-- 3TB HDD attached to the Debian VM and mounted at `/mnt/storage`
+- Proxmox on system SSD
+- 3 TB HDD attached to Debian and mounted at `/mnt/storage`
 - NVIDIA Quadro P400 passed through to `docker01`
-- PCIe riser slot was cut open-ended so the P400 physically fits
+- PCIe riser slot physically opened so the P400 fits
 
 ## Virtualization Layout
 
 | Layer | Name | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | Bare metal | Dell PowerEdge R515 | Physical server |
 | Hypervisor | Proxmox | VM host |
-| VM | `docker01` | Debian VM for Docker, Jellyfin, Caddy, Samba, monitoring, DNS filtering, dashboards/launchers, media automation, and local SMS bot testing |
-| VM | `haos` | Home Assistant OS VM, currently kept separate while Raspberry Pi remains fallback |
+| VM | `docker01` | Debian VM for Docker, Jellyfin, Caddy, Samba, monitoring, DNS, dashboards, and media automation |
+| VM | `haos` | Dedicated Home Assistant OS VM |
 
 ## Current Docker Services
 
@@ -110,92 +138,106 @@ Remote access note: UniFi Teleport currently works for private remote access. Ke
 - Homarr
 - Quick Links (`quicklinks`, standalone `nginx:alpine` container)
 
-Planned / pending Docker services:
+Planned / pending:
 
 - Immich
-- Backup automation
-- Tdarr test-only media optimization
+- additional backup automation
+- optional Tdarr test-only media optimization
 
-Possible tooling / non-service additions:
+## Quick Links
 
-- Wireshark on a workstation or temporary admin VM for packet captures and network troubleshooting
+Quick Links is the preferred mobile launcher. The current page is a polished responsive 12-card page with clean private HTTPS links for Seerr, Radarr, Sonarr, qBittorrent, Uptime Kuma, Jellyfin, Prowlarr, Portainer, AdGuard, Proxmox, Home Assistant, and Homarr.
+
+Preferred URL:
+
+```text
+https://links.r515.allenfamhouse.com
+```
+
+## Caddy Private-Only Design
+
+Because public Jellyfin requires WAN `443` to reach Caddy, private DNS alone is not sufficient to protect internal services. Private R515 sites import:
+
+```caddyfile
+(private_only) {
+    @denied not remote_ip private_ranges
+    abort @denied
+}
+```
+
+The public `mediahubdaniel.duckdns.org` site does not import this matcher.
+
+A stale single-file Caddy bind-mount issue was repaired by recreating only the Caddy Compose service. The host and mounted container Caddyfile hashes were confirmed identical afterward.
+
+## Verification Checkpoint — September 6, 2026
+
+After the internal-domain rollout:
+
+```text
+Quick Links      200
+Seerr            307
+Radarr           302
+Sonarr           302
+qBittorrent      200
+Uptime Kuma      302
+Prowlarr         302
+Portainer        200
+AdGuard          302
+Proxmox          200
+Homarr           200
+Jellyfin internal 302
+Jellyfin public   302
+Home Assistant    400 (expected until trusted proxy is configured)
+```
+
+Caddy also successfully resolved and reached the Let's Encrypt ACME endpoint after the final reload.
+
+## Home Assistant Remaining Step
+
+The clean Caddy route exists, but Home Assistant must trust the reverse proxy. If the HA log confirms the rejected proxy source is `192.168.10.135`, add:
+
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.10.135
+```
+
+Then validate/restart Home Assistant and test `https://ha.r515.allenfamhouse.com` again.
 
 ## Documentation
 
 - [`docs/current-config.md`](docs/current-config.md) — current known server configuration
-- [`docs/domains.md`](docs/domains.md) — service domains, internal DNS names, and local URLs
-- [`docs/media-request-workflow.md`](docs/media-request-workflow.md) — streamlined movie/TV request workflow and search troubleshooting plan
-- [`docs/media-library-maintenance.md`](docs/media-library-maintenance.md) — periodic Jellyfin/media cleanup checks, including audio default flags
-- [`docs/sms-bot.md`](docs/sms-bot.md) — local SMS request bot setup, commands, tests, and safety notes
-- [`docs/roadmap.md`](docs/roadmap.md) — service build order and priorities
-- [`docs/home-assistant-migration.md`](docs/home-assistant-migration.md) — HAOS VM migration plan
-- [`docs/open-questions.md`](docs/open-questions.md) — info still needed
-- [`docs/qbittorrent-vpn.md`](docs/qbittorrent-vpn.md) — qBittorrent + Mullvad/Gluetun setup notes
-- [`docs/adguard-home.md`](docs/adguard-home.md) — AdGuard Home setup and rollout notes
-- [`docs/service-dashboard.md`](docs/service-dashboard.md) — desktop Homarr dashboard and mobile Quick Links launcher plan
-- [`docs/quicklinks.md`](docs/quicklinks.md) — lightweight mobile Quick Links launcher setup and safety notes
-- [`docs/byparr.md`](docs/byparr.md) — Byparr internal helper service notes and recovery procedure
-- [`docs/seerr.md`](docs/seerr.md) — Seerr media request frontend notes
-- [`docs/windows-backup-pull.md`](docs/windows-backup-pull.md) — Windows Robocopy backup pull script
-- [`docs/server-backup-creation.md`](docs/server-backup-creation.md) — Debian-side backup creation script
-- [`docs/restore-procedure.md`](docs/restore-procedure.md) — restore-read test and emergency restore outline
-
-## Completed Major Milestones
-
-- Jellyfin local and remote access working through Caddy
-- Samba share working from Windows to `/mnt/storage`
-- Quadro P400 passthrough complete
-- Jellyfin hardware transcoding confirmed
-- Portainer installed
-- Uptime Kuma installed with monitors
-- qBittorrent installed and routed through Gluetun/Mullvad
-- Prowlarr installed and connected to qBittorrent
-- Radarr installed and connected to qBittorrent/Prowlarr
-- Sonarr installed and connected to qBittorrent/Prowlarr
-- AdGuard Home installed, verified, and rolled out to the main/default UniFi LAN DNS
-- Homarr installed and configured with service cards for the main local apps
-- Quick Links standalone mobile launcher installed on port `8070`
-- Prowlarr DNS issue fixed by explicitly using AdGuard DNS (`192.168.10.135`) in Docker Compose
-- Uptime Kuma DNS issue fixed so the public Jellyfin monitor can resolve `mediahubdaniel.duckdns.org`
-- Jellyfin plugin catalog DNS issue fixed by explicitly using AdGuard DNS (`192.168.10.135`) in Docker Compose
-- Byparr added as an internal helper service on port `8191`
-- Byparr hard-recreate recovery documented after a 500/Internal Server Error issue was fixed
-- Prowlarr indexers added and confirmed working by the user
-- Seerr installed as the LAN-only media request frontend on port `5055`
-- Seerr connected to Jellyfin, Radarr, and Sonarr
-- Seerr request flow tested by the user
-- Seerr Uptime Kuma monitor URL typo fixed to use port `5055`
-- Radarr and Sonarr quality profiles configured for 1080p fallback with 4K upgrades
-- qBittorrent stalled-torrent issue fixed by binding qBittorrent to the correct VPN interface
-- Initial movie audio-default cleanup completed for files where Russian was default and English was available
-- Local SMS request bot installed on port `5070`
-- SMS bot movie search/request, TV search, help, status, downloads, and recently-added commands tested locally
-- SMS bot added/ready for Uptime Kuma and Homarr local tracking
-- SMS/Twilio preparation paused safely: `/twilio-sms` exists and rejects unsigned requests, but no Twilio token or public route is active
-- Debian-side backup script installed and tested
-- Windows Robocopy backup pull script installed and tested with progress/ETA output
-- Restore-read test passed without overwriting live files
-- Fresh backup completed after qBittorrent + VPN setup
-- Fresh backup completed after AdGuard Home whole-LAN rollout
-- Fresh backup completed after SMS bot status/downloads, Jellyfin plugin DNS, and media audio-default fixes
+- [`docs/domains.md`](docs/domains.md) — active public/private domains, internal DNS, and Caddy private routing
+- [`docs/quicklinks.md`](docs/quicklinks.md) — mobile Quick Links launcher
+- [`docs/service-dashboard.md`](docs/service-dashboard.md) — Homarr desktop + Quick Links mobile dashboard strategy
+- [`docs/media-request-workflow.md`](docs/media-request-workflow.md) — media request workflow
+- [`docs/qbittorrent-vpn.md`](docs/qbittorrent-vpn.md) — qBittorrent + Gluetun/Mullvad
+- [`docs/adguard-home.md`](docs/adguard-home.md) — AdGuard Home and internal wildcard DNS
+- [`docs/home-assistant-migration.md`](docs/home-assistant-migration.md) — HAOS VM migration/status
+- [`docs/media-library-maintenance.md`](docs/media-library-maintenance.md) — media cleanup checks
+- [`docs/sms-bot.md`](docs/sms-bot.md) — local SMS request bot
+- [`docs/byparr.md`](docs/byparr.md) — Byparr helper service
+- [`docs/seerr.md`](docs/seerr.md) — Seerr notes
+- [`docs/windows-backup-pull.md`](docs/windows-backup-pull.md) — Windows backup pull
+- [`docs/server-backup-creation.md`](docs/server-backup-creation.md) — Debian-side backup creation
+- [`docs/restore-procedure.md`](docs/restore-procedure.md) — restore procedure
+- [`docs/roadmap.md`](docs/roadmap.md) — roadmap/priorities
+- [`docs/open-questions.md`](docs/open-questions.md) — remaining questions
 
 ## Current Priorities
 
-1. Streamline media request workflow: use Quick Links as the preferred mobile launchpad, Homarr for desktop, Seerr as the normal request UI, and Radarr/Sonarr only for advanced interactive search.
-2. Decide next tooling direction: Tdarr test-only media optimization, Wireshark troubleshooting workflow, Home Assistant migration, or Immich prep.
-3. Keep using the backup rhythm: create a Debian-side config backup, then pull it to the Windows PC.
-4. Run periodic media library maintenance checks for audio default flags and Jellyfin/plugin connectivity.
-5. Monitor AdGuard Home after whole-LAN DNS rollout and fix any breakage with targeted allowlist entries.
-6. Finish Home Assistant migration only after the current VM is stable and the Raspberry Pi fallback is no longer needed.
-7. Keep SMS/Twilio paused until intentionally resumed.
+1. Finish Home Assistant trusted-proxy configuration and verify the clean HA URL.
+2. Use Quick Links as the preferred mobile/Teleport launcher and Homarr for desktop.
+3. Add Quick Links to the iPhone Home Screen and add one R515 button in Home Assistant.
+4. Keep the backup rhythm: create Debian-side config backup, then pull it to the Windows PC.
+5. Continue normal media-library and AdGuard monitoring.
+6. Decide the next major service/tooling step: Immich, Tdarr test, or other homelab work.
 
 ## Important Safety Notes
 
-- Do not commit DuckDNS tokens, passwords, API keys, Mullvad keys, SMS provider secrets, webhook tokens, or private keys.
-- Do not expose Jellyfin port `8096` directly to the internet while Caddy is working.
-- Public Jellyfin access should go through Caddy on ports `80` and `443` only.
-- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Byparr, Seerr, Portainer, Uptime Kuma, AdGuard Home, Homarr, Proxmox, Home Assistant, and Quick Links private/LAN/VPN-only unless remote access is intentionally redesigned.
-- Quick Links is intended for LAN or UniFi Teleport access only; do not publish port `8070` through Caddy, DuckDNS, or router port forwarding.
+- Never commit DuckDNS tokens, passwords, API keys, Mullvad keys, SMS provider secrets, webhook tokens, or private keys.
+- Keep qBittorrent, Prowlarr, Radarr, Sonarr, Byparr, Seerr, Portainer, Uptime Kuma, AdGuard Home, Homarr, Proxmox, Home Assistant, Quick Links, and the internal Jellyfin alias private/LAN/Teleport-only.
+- Do not remove the Caddy `private_only` gate from private R515 sites.
 - Keep qBittorrent behind Gluetun/Mullvad.
-- Keep a DNS rollback plan ready: set UniFi DHCP DNS back to Auto or back to the previous resolver if AdGuard causes issues.
-- Keep the central service dashboard and launcher internal/LAN-only unless remote access is redesigned with proper protection.
+- Keep a DNS rollback plan available if AdGuard causes problems.
