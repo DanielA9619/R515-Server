@@ -39,7 +39,7 @@ The wildcard is for LAN and UniFi Teleport clients using AdGuard DNS. Public res
 | Portainer | `https://portainer.r515.allenfamhouse.com` | `https://192.168.10.135:9443` | LAN / Teleport only |
 | AdGuard Home | `https://adguard.r515.allenfamhouse.com` | `http://192.168.10.135:3002` | LAN / Teleport only |
 | Proxmox | `https://proxmox.r515.allenfamhouse.com` | `https://192.168.10.50:8006` | LAN / Teleport only |
-| Home Assistant | `https://ha.r515.allenfamhouse.com` | `http://192.168.10.127:8123` | LAN / Teleport only; Caddy route active, HA trusted-proxy config still pending |
+| Home Assistant | `https://ha.r515.allenfamhouse.com` | `http://192.168.10.127:8123` | LAN / Teleport only; Caddy route active, HA trusted-proxy setting still pending |
 | Jellyfin internal | `https://jellyfin.r515.allenfamhouse.com` | `http://192.168.10.135:8096` | LAN / Teleport only |
 | Jellyfin public | `https://mediahubdaniel.duckdns.org` | `jellyfin:8096` through Caddy | Public |
 
@@ -86,16 +86,15 @@ Portainer and Proxmox use HTTPS on their backends. Caddy currently connects to t
 
 The Caddy route for `ha.r515.allenfamhouse.com` is active, but Home Assistant currently responds with HTTP `400` until its reverse-proxy trust is configured.
 
-Expected HA configuration, if the rejected proxy source is confirmed as `192.168.10.135`:
+On Home Assistant 2026.8+, go to:
 
-```yaml
-http:
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - 192.168.10.135
+```text
+Settings -> System -> Network -> HTTP server
 ```
 
-Use the exact proxy source shown in the Home Assistant log rather than trusting an unnecessarily broad network.
+Turn on **Trust X-Forwarded-For** and add the Caddy proxy IP to **Trusted proxies**. The expected source in this setup is `192.168.10.135`. Saving the HTTP server settings restarts Home Assistant and requires confirmation after restart.
+
+If the route still returns `400`, use the exact rejected proxy source shown in the Home Assistant log instead of trusting a broad network.
 
 ## Current verification checkpoint
 
