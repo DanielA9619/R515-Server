@@ -1,84 +1,80 @@
 # qBittorrent VPN Setup
 
-This document tracks the qBittorrent + Mullvad VPN setup on the R515 Debian Docker VM.
+This document tracks qBittorrent behind Gluetun/Mullvad on the R515 Debian Docker VM.
 
-## Goal
-
-Route qBittorrent through a VPN kill-switch so torrent traffic does not use the normal home WAN path.
-
-Target flow:
+## Architecture
 
 ```text
-qBittorrent container
-  -> Gluetun VPN container
+Browser on LAN / UniFi Teleport
+  -> https://qbittorrent.r515.allenfamhouse.com
+  -> Caddy
+  -> gluetun:8080
+  -> qBittorrent Web UI
+
+qBittorrent torrent traffic
+  -> Gluetun VPN namespace
   -> Mullvad WireGuard
   -> Internet
 ```
 
 ## Current status
 
-Working as of the latest chat checkpoint.
+Working as of September 6, 2026.
 
 Confirmed:
 
-- `gluetun` is running and Docker reports it as healthy.
-- `qbittorrent` is running behind Gluetun using Gluetun's network stack.
-- qBittorrent Web UI is still reachable on the LAN at `http://192.168.10.135:8080`.
-- Gluetun publishes qBittorrent's Web UI port with `0.0.0.0:8080->8080/tcp`.
-- VPN traffic through Gluetun successfully pinged `1.1.1.1` with `0% packet loss`.
-- DNS through Gluetun successfully resolved `cloudflare.com` using Gluetun's local DNS server at `127.0.0.1`.
-- Public IP test through Gluetun returned `155.2.191.136`, indicating traffic is exiting through Mullvad rather than the home IP.
-- qBittorrent Web UI password was changed from the temporary/default password.
-- qBittorrent download paths were confirmed in the Web UI.
-- Uptime Kuma qBittorrent monitor was added/confirmed by the user.
-- qBittorrent stalled-torrent issue was fixed by changing qBittorrent's network interface binding to the VPN interface.
-- Backup was completed after qBittorrent + Mullvad/Gluetun was confirmed working.
+- `gluetun` is healthy.
+- qBittorrent uses `network_mode: "service:gluetun"`.
+- Gluetun publishes the Web UI on host port `8080`.
+- Direct LAN Web UI: `http://192.168.10.135:8080`.
+- Preferred private HTTPS Web UI: `https://qbittorrent.r515.allenfamhouse.com`.
+- Caddy reverse proxies the clean hostname to `gluetun:8080`.
+- The clean hostname returned HTTP `200` after the Caddy mount issue was repaired.
+- qBittorrent Web UI password has been changed from the temporary/default password.
+- qBittorrent remains bound to the VPN interface after an earlier stalled-torrent issue.
+- Uptime Kuma monitors qBittorrent.
 
-Example successful checks:
+## Caddy route
 
-```text
-gluetun       Up About a minute (healthy)
-qbittorrent   Up About a minute
+```caddyfile
+qbittorrent.r515.allenfamhouse.com {
+    import private_only
+    tls internal
+    reverse_proxy gluetun:8080
+}
 ```
 
-```text
-PING 1.1.1.1 (1.1.1.1): 56 data bytes
-3 packets transmitted, 3 packets received, 0% packet loss
+The route is LAN / UniFi Teleport only. Do not remove the `private_only` import.
+
+The qBittorrent Web UI currently accepts the clean reverse-proxy hostname without disabling its normal Web UI protections.
+
+## VPN checks
+
+Useful checks:
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
 
-```text
-Server:         127.0.0.1
-Address:        127.0.0.1:53
-
-Name:   cloudflare.com
-Address: 104.16.133.229
-Name:   cloudflare.com
-Address: 104.16.132.229
+```bash
+docker run --rm --network=container:gluetun busybox ping -c 3 1.1.1.1
 ```
 
-```text
-Public IP through Gluetun: 155.2.191.136
+```bash
+docker run --rm --network=container:gluetun busybox nslookup cloudflare.com 127.0.0.1
 ```
 
-## Important troubleshooting note
+```bash
+docker run --rm --network=container:gluetun curlimages/curl:latest -s https://ifconfig.me && echo
+```
 
-The first VPN attempts failed because the Mullvad account did not have active time added. Symptoms matched a tunnel that initialized but did not pass traffic:
+Do not document or commit the resulting VPN public IP as a permanent secret/config value; it may change.
 
-- Gluetun reported WireGuard setup complete.
-- Gluetun stayed unhealthy.
-- Ping through Gluetun had `100% packet loss`.
-- DNS lookups through Gluetun timed out.
-- Gluetun repeatedly restarted the VPN healthcheck.
+## Interface-binding fix
 
-After adding time to the Mullvad account and recreating Gluetun/qBittorrent, the VPN became healthy and traffic tests passed.
+A previous issue caused torrents to stall with `0` peers even when the same torrent worked elsewhere. The fix was to bind qBittorrent to the VPN interface inside the Gluetun network namespace.
 
-## qBittorrent interface binding fix
-
-A later issue made some torrents stall on the server even when the exact same torrent worked in another qBittorrent client. In the server qBittorrent Web UI, DHT/PeX/LSD showed as working, but torrents had `0` peers and many trackers timed out or failed.
-
-The fix was changing qBittorrent's network interface binding so the client used the correct VPN interface inside the Gluetun network namespace.
-
-Current intended qBittorrent Web UI settings:
+Intended setting:
 
 ```text
 Tools -> Options -> Advanced
@@ -86,62 +82,37 @@ Network Interface: VPN interface / tun0 if available
 Optional IP address to bind to: All addresses
 ```
 
-If `tun0` is not visible, verify the interfaces from the Debian VM:
+If needed:
 
 ```bash
 docker exec gluetun ip addr
 docker exec qbittorrent ip addr
 ```
 
-Because qBittorrent uses:
+Because qBittorrent shares Gluetun's network namespace, it should see the same VPN interface.
 
-```yaml
-network_mode: "service:gluetun"
-```
+## Secrets
 
-it should see the same VPN network interface as Gluetun. If torrents stall with `0` peers while the same torrent works elsewhere, check this interface binding before assuming the torrent or indexer is bad.
-
-## Current secret/config values
-
-Secrets are stored locally in:
+Local VPN secrets are stored in:
 
 ```text
 /srv/docker/.env
 ```
 
-Do not commit this file to GitHub.
+Expected variable names include:
 
-Expected `.env` variable names:
-
-```env
-MULLVAD_PRIVATE_KEY=...
-MULLVAD_ADDRESSES=10.x.x.x/32
-MULLVAD_SERVER_COUNTRIES=USA
-MULLVAD_WIREGUARD_ENDPOINT_PORT=51820
+```text
+MULLVAD_PRIVATE_KEY
+MULLVAD_ADDRESSES
+MULLVAD_SERVER_COUNTRIES
+MULLVAD_WIREGUARD_ENDPOINT_PORT
 ```
 
-Do not paste or publish `MULLVAD_PRIVATE_KEY`.
+Never commit their values.
 
-## Compose design
+## Paths
 
-Gluetun should publish qBittorrent's Web UI port:
-
-```yaml
-ports:
-  - "8080:8080"
-```
-
-qBittorrent should use Gluetun's network stack:
-
-```yaml
-network_mode: "service:gluetun"
-```
-
-qBittorrent should not have its own `ports:` section while routed through Gluetun.
-
-## Recommended qBittorrent paths
-
-Inside qBittorrent / inside the container:
+Recommended container paths:
 
 ```text
 Default save path: /downloads/complete
@@ -161,53 +132,9 @@ Host paths:
 
 ## Safety rules
 
-- Do not expose qBittorrent Web UI port `8080` publicly.
-- Do not expose Portainer `9443` publicly.
-- Do not put Mullvad private keys into GitHub.
-- If Gluetun becomes unhealthy, qBittorrent should be treated as offline until VPN tests pass again.
-- Before adding automation tools such as Radarr/Sonarr, verify Gluetun is healthy and the public IP test exits through Mullvad.
-
-## Useful test commands
-
-```bash
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-```
-
-```bash
-docker run --rm --network=container:gluetun busybox ping -c 3 1.1.1.1
-```
-
-```bash
-docker run --rm --network=container:gluetun busybox nslookup cloudflare.com 127.0.0.1
-```
-
-```bash
-docker run --rm --network=container:gluetun curlimages/curl:latest -s https://ifconfig.me && echo
-```
-
-```bash
-docker exec gluetun ip addr
-docker exec qbittorrent ip addr
-```
-
-## Backup checkpoint
-
-Backup completed after qBittorrent + Mullvad/Gluetun was working.
-
-Expected backup filename:
-
-```text
-/mnt/storage/backups/<date>/srv-docker-after-qbit-vpn.tar.gz
-```
-
-## Next planned media stack
-
-Recommended next tools:
-
-```text
-Prowlarr -> indexer manager
-Radarr   -> movies
-Sonarr   -> TV
-```
-
-These should be installed only after confirming the qBittorrent VPN path is still healthy.
+- Keep qBittorrent behind Gluetun/Mullvad.
+- Keep port `8080` and `qbittorrent.r515.allenfamhouse.com` private/LAN/Teleport-only.
+- Do not expose qBittorrent directly to the public internet.
+- Do not weaken Host-header/CSRF/clickjacking protections merely to make a reverse proxy work.
+- If Gluetun becomes unhealthy, treat qBittorrent as offline until VPN tests pass again.
+- Never commit Mullvad private keys or other credentials.
