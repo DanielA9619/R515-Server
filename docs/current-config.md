@@ -140,7 +140,7 @@ Jellyfin internal 302
 Jellyfin public   302
 ```
 
-Home Assistant's `400` is expected until the HA trusted-proxy configuration is added.
+Home Assistant's `400` is expected until the HA trusted-proxy setting is added.
 
 Caddy was also confirmed able to resolve and reach the Let's Encrypt ACME endpoint after the final reload.
 
@@ -224,16 +224,13 @@ Caddy route is active:
 https://ha.r515.allenfamhouse.com
 ```
 
-Remaining HA proxy step: if Home Assistant logs confirm Caddy's source as `192.168.10.135`, add:
+Remaining HA proxy step on Home Assistant 2026.8+:
 
-```yaml
-http:
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - 192.168.10.135
+```text
+Settings -> System -> Network -> HTTP server
 ```
 
-Then validate and restart Home Assistant.
+Turn on **Trust X-Forwarded-For** and add `192.168.10.135` under **Trusted proxies**. Saving the HTTP server settings restarts Home Assistant and requires confirmation after restart. If the clean route still returns `400`, check the Home Assistant log for the exact rejected proxy source and use that IP instead.
 
 ## Storage
 
