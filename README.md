@@ -63,7 +63,7 @@ Caddy serves the private hostnames with internal TLS and an explicit `private_on
 | Portainer | `https://portainer.r515.allenfamhouse.com` | Docker admin. |
 | AdGuard Home | `https://adguard.r515.allenfamhouse.com` | DNS/admin UI. |
 | Proxmox | `https://proxmox.r515.allenfamhouse.com` | Hypervisor admin. |
-| Home Assistant | `https://ha.r515.allenfamhouse.com` | Caddy route active; HA trusted-proxy setting still pending. |
+| Home Assistant | `https://ha.r515.allenfamhouse.com` | Working through Caddy; LAN / Teleport only. |
 | Jellyfin internal | `https://jellyfin.r515.allenfamhouse.com` | Private LAN/Teleport alias. |
 | Jellyfin public | `https://mediahubdaniel.duckdns.org` | Public Caddy route. |
 
@@ -169,40 +169,24 @@ The public `mediahubdaniel.duckdns.org` site does not import this matcher.
 
 A stale single-file Caddy bind-mount issue was repaired by recreating only the Caddy Compose service. The host and mounted container Caddyfile hashes were confirmed identical afterward.
 
-## Verification Checkpoint — September 6, 2026
+## Verification Checkpoint — September 2026
 
-After the internal-domain rollout:
+The internal-domain rollout is complete. The clean private URLs for Quick Links, Seerr, Radarr, Sonarr, qBittorrent, Uptime Kuma, Prowlarr, Portainer, AdGuard, Proxmox, Homarr, Home Assistant, and Jellyfin are working through Caddy on LAN / UniFi Teleport.
 
-```text
-Quick Links       200
-Seerr             307
-Radarr            302
-Sonarr            302
-qBittorrent       200
-Uptime Kuma       302
-Prowlarr          302
-Portainer         200
-AdGuard           302
-Proxmox           200
-Homarr            200
-Jellyfin internal 302
-Jellyfin public   302
-Home Assistant    400 (expected until trusted proxy is configured)
+Public Jellyfin remained working throughout the rollout, and Caddy was confirmed able to resolve and reach the Let's Encrypt ACME endpoint.
+
+## Home Assistant Reverse Proxy
+
+Home Assistant initially returned HTTP `400` through Caddy until reverse-proxy trust was added to `/config/configuration.yaml`:
+
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.10.135
 ```
 
-Caddy also successfully resolved and reached the Let's Encrypt ACME endpoint after the final reload.
-
-## Home Assistant Remaining Step
-
-Home Assistant 2026.8+ exposes reverse-proxy trust in the UI. Go to:
-
-```text
-Settings -> System -> Network -> HTTP server
-```
-
-Turn on **Trust X-Forwarded-For** and add `192.168.10.135` under **Trusted proxies**. Save the HTTP server settings; Home Assistant restarts and then asks an administrator to confirm the new settings. If the clean HA URL still returns `400`, check the HA log and use the exact rejected proxy source instead.
-
-Then test:
+The file was edited through Studio Code Server, Home Assistant configuration was validated, and Home Assistant was restarted. The clean URL now works:
 
 ```text
 https://ha.r515.allenfamhouse.com
@@ -230,12 +214,11 @@ https://ha.r515.allenfamhouse.com
 
 ## Current Priorities
 
-1. Finish Home Assistant trusted-proxy configuration and verify the clean HA URL.
-2. Use Quick Links as the preferred mobile/Teleport launcher and Homarr for desktop.
-3. Add Quick Links to the iPhone Home Screen and add one R515 button in Home Assistant.
-4. Keep the backup rhythm: create Debian-side config backup, then pull it to the Windows PC.
-5. Continue normal media-library and AdGuard monitoring.
-6. Decide the next major service/tooling step: Immich, Tdarr test, or other homelab work.
+1. Make a fresh Debian/Docker config backup and a fresh Home Assistant backup now that the private-domain rollout is complete.
+2. Add Quick Links to the iPhone Home Screen and add one R515 button in Home Assistant that opens `https://links.r515.allenfamhouse.com`.
+3. Verify the HAOS VM's devices/integrations and keep the Raspberry Pi fallback untouched until the VM has proven stable.
+4. Continue normal media-library and AdGuard monitoring.
+5. Decide the next major service/tooling step: Immich, Tdarr test, or another homelab project.
 
 ## Important Safety Notes
 
