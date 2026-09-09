@@ -34,7 +34,7 @@ The Raspberry Pi remains available at `192.168.10.190` as a fallback while the V
 
 ## Current HAOS status
 
-The fresh HAOS VM is built and usable at:
+The fresh HAOS VM is built and usable directly at:
 
 ```text
 http://192.168.10.127:8123
@@ -50,12 +50,13 @@ Completed on the fresh VM:
 - Home Assistant Google Drive Backup
 - UniFi integration/add-on work
 - fresh HA backup after core setup
+- Caddy reverse proxy and clean private HTTPS hostname
 
 The clean-rebuild path was chosen instead of spending more time repairing the Raspberry Pi backup.
 
 ## Clean internal URL
 
-Caddy now has a private internal route for:
+Home Assistant is now working through Caddy at:
 
 ```text
 https://ha.r515.allenfamhouse.com
@@ -71,30 +72,24 @@ ha.r515.allenfamhouse.com {
 }
 ```
 
-The route reaches Home Assistant but currently returns HTTP `400` because Home Assistant has not yet been configured to trust the reverse proxy.
+The route is LAN / UniFi Teleport only through the same private Caddy gate used by the other R515 internal services.
 
-## Remaining reverse-proxy step
+## Reverse-proxy trust configuration
 
-Home Assistant 2026.8+ exposes HTTP/reverse-proxy settings in the UI.
+Home Assistant initially returned HTTP `400` because it did not trust the Caddy reverse proxy.
 
-Go to:
+The working configuration was added to `/config/configuration.yaml` using Studio Code Server:
 
-```text
-Settings -> System -> Network -> HTTP server
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.10.135
 ```
 
-Then:
+After saving, validating the Home Assistant configuration, and restarting Home Assistant, the clean HTTPS URL worked successfully.
 
-1. Turn on **Trust X-Forwarded-For**.
-2. Add the Caddy proxy address to **Trusted proxies**.
-3. The expected proxy source in this setup is `192.168.10.135` because Caddy runs on `docker01` and connects from that Debian VM to the HAOS VM.
-4. Save the HTTP server settings. Home Assistant restarts when these settings are saved.
-5. Confirm the new settings when Home Assistant asks after restart.
-6. Test `https://ha.r515.allenfamhouse.com` again.
-
-If the route still returns HTTP `400`, check the Home Assistant log for the rejected reverse-proxy source and use the exact source IP it reports instead of trusting a broad network.
-
-Do not trust `0.0.0.0/0` or an unnecessarily large network.
+Do not trust `0.0.0.0/0` or an unnecessarily broad network. If the Caddy source address changes later, verify the rejected proxy source in Home Assistant logs before changing `trusted_proxies`.
 
 ## IP plan
 
@@ -105,13 +100,12 @@ Do not trust `0.0.0.0/0` or an unnecessarily large network.
 
 ## Final cutover checklist
 
-1. Finish the reverse-proxy trusted-proxy setting.
-2. Verify devices/integrations on the HAOS VM.
-3. Verify Home Assistant mobile app access.
-4. Verify Matter and UniFi functionality.
-5. Make a fresh HA backup.
-6. Keep the Raspberry Pi untouched until the VM has proven stable.
-7. Add one large R515 dashboard button opening:
+1. Verify devices/integrations on the HAOS VM.
+2. Verify Home Assistant mobile app access.
+3. Verify Matter and UniFi functionality.
+4. Make a fresh HA backup after the completed reverse-proxy/domain setup.
+5. Keep the Raspberry Pi untouched until the VM has proven stable.
+6. Add one large R515 dashboard button opening:
 
 ```text
 https://links.r515.allenfamhouse.com
@@ -123,6 +117,6 @@ This avoids duplicating every individual R515 service inside Home Assistant.
 
 - Keep `ha.r515.allenfamhouse.com` LAN / UniFi Teleport only.
 - Caddy's `private_only` gate must remain on the Home Assistant site.
-- Trust only the actual reverse-proxy source in Home Assistant's Trusted proxies setting.
+- Trust only the actual reverse-proxy source in Home Assistant's `trusted_proxies` setting.
 - Keep fresh Home Assistant backups before major migration/cutover changes.
 - Do not store Home Assistant credentials, tokens, API keys, or private keys in this repository.
