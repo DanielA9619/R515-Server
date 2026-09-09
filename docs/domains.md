@@ -39,7 +39,7 @@ The wildcard is for LAN and UniFi Teleport clients using AdGuard DNS. Public res
 | Portainer | `https://portainer.r515.allenfamhouse.com` | `https://192.168.10.135:9443` | LAN / Teleport only |
 | AdGuard Home | `https://adguard.r515.allenfamhouse.com` | `http://192.168.10.135:3002` | LAN / Teleport only |
 | Proxmox | `https://proxmox.r515.allenfamhouse.com` | `https://192.168.10.50:8006` | LAN / Teleport only |
-| Home Assistant | `https://ha.r515.allenfamhouse.com` | `http://192.168.10.127:8123` | LAN / Teleport only; Caddy route active, HA trusted-proxy setting still pending |
+| Home Assistant | `https://ha.r515.allenfamhouse.com` | `http://192.168.10.127:8123` | LAN / Teleport only; working through Caddy |
 | Jellyfin internal | `https://jellyfin.r515.allenfamhouse.com` | `http://192.168.10.135:8096` | LAN / Teleport only |
 | Jellyfin public | `https://mediahubdaniel.duckdns.org` | `jellyfin:8096` through Caddy | Public |
 
@@ -82,23 +82,26 @@ The `*.r515.allenfamhouse.com` sites use Caddy `tls internal` certificates. Clie
 
 Portainer and Proxmox use HTTPS on their backends. Caddy currently connects to those trusted-LAN backends with certificate verification disabled at the upstream hop while still providing Caddy internal TLS to the client.
 
-## Home Assistant note
+## Home Assistant reverse proxy
 
-The Caddy route for `ha.r515.allenfamhouse.com` is active, but Home Assistant currently responds with HTTP `400` until its reverse-proxy trust is configured.
+The Caddy route for `ha.r515.allenfamhouse.com` is active and working.
 
-On Home Assistant 2026.8+, go to:
+Home Assistant required reverse-proxy trust in `/config/configuration.yaml`:
 
-```text
-Settings -> System -> Network -> HTTP server
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.10.135
 ```
 
-Turn on **Trust X-Forwarded-For** and add the Caddy proxy IP to **Trusted proxies**. The expected source in this setup is `192.168.10.135`. Saving the HTTP server settings restarts Home Assistant and requires confirmation after restart.
+After saving, validating, and restarting Home Assistant, the clean private HTTPS URL worked successfully.
 
-If the route still returns `400`, use the exact rejected proxy source shown in the Home Assistant log instead of trusting a broad network.
+Use the exact proxy source shown in Home Assistant logs if this address ever changes rather than trusting a broad network.
 
 ## Current verification checkpoint
 
-The following private routes were tested successfully through Caddy on September 6, 2026:
+The following private routes were tested successfully through Caddy during the September 2026 rollout:
 
 ```text
 Quick Links   200
@@ -113,11 +116,10 @@ AdGuard       302
 Proxmox       200
 Homarr        200
 Jellyfin LAN  302
+Home Assistant working after trusted-proxy configuration
 ```
 
-Public Jellyfin also returned `302`, confirming the public route remained available after the internal-domain work.
-
-Home Assistant returned `400`, which is expected until its trusted-proxy setting is added.
+Public Jellyfin also remained available after the internal-domain work.
 
 The Caddy host file and mounted container file hashes were confirmed identical after recreating the Caddy container, fixing an earlier stale single-file bind-mount inode problem.
 
