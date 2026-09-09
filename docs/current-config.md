@@ -1,6 +1,6 @@
 # Current Configuration
 
-Last refreshed after the private R515 domain/Caddy rollout on September 6, 2026.
+Last refreshed after the private R515 domain/Caddy rollout in September 2026.
 
 ## Network
 
@@ -121,26 +121,24 @@ https://mediahubdaniel.duckdns.org
 
 ## Verification checkpoint
 
-September 6, 2026 Caddy tests:
+September 2026 Caddy/domain rollout results:
 
 ```text
-Quick Links       200
-Seerr             307
-Radarr            302
-Sonarr            302
-qBittorrent       200
-Uptime Kuma       302
-Prowlarr          302
-Portainer         200
-AdGuard           302
-Proxmox           200
-Home Assistant    400
-Homarr            200
-Jellyfin internal 302
-Jellyfin public   302
+Quick Links       working
+Seerr             working
+Radarr            working
+Sonarr            working
+qBittorrent       working
+Uptime Kuma       working
+Prowlarr          working
+Portainer         working
+AdGuard           working
+Proxmox           working
+Home Assistant    working after trusted-proxy configuration
+Homarr            working
+Jellyfin internal working
+Jellyfin public   working
 ```
-
-Home Assistant's `400` is expected until the HA trusted-proxy setting is added.
 
 Caddy was also confirmed able to resolve and reach the Let's Encrypt ACME endpoint after the final reload.
 
@@ -218,19 +216,22 @@ Fresh VM setup includes HACS, Matter Server, Terminal & SSH, Studio Code Server,
 
 The Raspberry Pi at `192.168.10.190` remains as fallback.
 
-Caddy route is active:
+Caddy route is active and working:
 
 ```text
 https://ha.r515.allenfamhouse.com
 ```
 
-Remaining HA proxy step on Home Assistant 2026.8+:
+Working reverse-proxy configuration in `/config/configuration.yaml`:
 
-```text
-Settings -> System -> Network -> HTTP server
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.10.135
 ```
 
-Turn on **Trust X-Forwarded-For** and add `192.168.10.135` under **Trusted proxies**. Saving the HTTP server settings restarts Home Assistant and requires confirmation after restart. If the clean route still returns `400`, check the Home Assistant log for the exact rejected proxy source and use that IP instead.
+The setting was added through Studio Code Server, then Home Assistant configuration was validated and Home Assistant restarted successfully.
 
 ## Storage
 
@@ -280,7 +281,7 @@ Backups are stored under:
 
 A Windows pull workflow also copies server backups off the R515.
 
-Continue the existing backup rhythm after major Caddy/domain/Home Assistant changes.
+Create a fresh Docker/config backup and Home Assistant backup after the completed domain/reverse-proxy rollout.
 
 ## Safety
 
