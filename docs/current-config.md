@@ -1,6 +1,6 @@
 # Current Configuration
 
-Last refreshed after the private R515 domain/Caddy rollout in September 2026.
+Last refreshed after the September 2026 private-domain rollout and power-outage recovery work.
 
 ## Network
 
@@ -26,7 +26,7 @@ WAN forwards currently required for public Jellyfin:
 | `80` | TCP | `192.168.10.135:80` |
 | `443` | TCP | `192.168.10.135:443` |
 
-Do not forward Jellyfin `8096`, Quick Links `8070`, qBittorrent `8080`, Portainer `9443`, Proxmox `8006`, AdGuard `3002`, or the other private service ports publicly.
+Do not forward Jellyfin `8096`, Quick Links `8070`, qBittorrent `8080`, Portainer `9443`, Proxmox `8006`, AdGuard `3002`, Byparr `8191`, or the other private service ports publicly.
 
 UniFi Teleport is the preferred private remote-access path.
 
@@ -48,6 +48,15 @@ Private rewrites:
 *.r515.allenfamhouse.com -> 192.168.10.135
 r515.allenfamhouse.com   -> 192.168.10.135
 ```
+
+Byparr is an intentional exception for container-level public DNS. It uses:
+
+```text
+1.1.1.1
+8.8.8.8
+```
+
+This prevents Byparr's browser/scraping functionality from depending on the local AdGuard instance being ready after a reboot or outage.
 
 ## Caddy
 
@@ -121,16 +130,17 @@ https://mediahubdaniel.duckdns.org
 
 ## Verification checkpoint
 
-September 2026 Caddy/domain rollout results:
+September 2026 domain and outage-recovery results:
 
 ```text
 Quick Links       working
 Seerr             working
 Radarr            working
 Sonarr            working
-qBittorrent       working
+qBittorrent       working; real storage bind verified after reboot
 Uptime Kuma       working
-Prowlarr          working
+Prowlarr          working; indexer Test All green after Byparr v5 fix
+Byparr            /health HTTP 200 after direct public DNS fix
 Portainer         working
 AdGuard           working
 Proxmox           working
@@ -164,6 +174,35 @@ Known active services include:
 
 Quick Links is currently a standalone `nginx:alpine` container rather than a Compose-managed service.
 
+## Power-outage / reboot recovery
+
+Two enabled systemd oneshot services protect the Docker stack from boot-order failures:
+
+```text
+r515-postboot-recovery.service
+r515-byparr-recovery.service
+```
+
+Scripts:
+
+```text
+/usr/local/sbin/r515-postboot-recovery.sh
+/usr/local/sbin/r515-byparr-recovery.sh
+```
+
+The main post-boot service waits for `/mnt/storage`, verifies it is writable, recreates storage-dependent containers against the real mount, waits for Gluetun, and recreates qBittorrent only after storage and VPN readiness.
+
+The Byparr/Prowlarr v5 service runs afterward. It uses the real `/health` endpoint, recreates Byparr at most once per boot if needed, and restarts Prowlarr only after Byparr is functionally healthy.
+
+Expected successful state for both units:
+
+```text
+active (exited)
+status=0/SUCCESS
+```
+
+See [`power-outage-recovery.md`](power-outage-recovery.md) for the detailed failure history, validation results, and recovery commands.
+
 ## qBittorrent / VPN
 
 qBittorrent uses Gluetun's network namespace:
@@ -178,9 +217,43 @@ The Caddy clean hostname proxies to:
 gluetun:8080
 ```
 
+Downloads are bind-mounted from:
+
+```text
+/mnt/storage/downloads -> /downloads
+```
+
+After the September outage, qBittorrent torrents entered `Errored` state because Docker had started before the storage mount was ready. The post-boot recovery now recreates storage-dependent containers after `/mnt/storage` is confirmed mounted and writable.
+
 Keep qBittorrent bound to the VPN interface and treat it as offline if Gluetun becomes unhealthy.
 
 Do not commit Mullvad keys or `/srv/docker/.env` secret values.
+
+## Byparr / Prowlarr
+
+Byparr endpoint:
+
+```text
+http://192.168.10.135:8191
+```
+
+Current Compose DNS for Byparr:
+
+```yaml
+dns:
+  - 1.1.1.1
+  - 8.8.8.8
+```
+
+Functional health check:
+
+```bash
+curl -i --max-time 15 http://127.0.0.1:8191/health
+```
+
+Do not use `/docs` alone as proof that Byparr is healthy. During the outage recovery, `/docs` returned `200` while `/health` returned `502` with `NS_ERROR_UNKNOWN_HOST` because the browser layer could not resolve public sites.
+
+See [`byparr.md`](byparr.md) for full recovery details.
 
 ## Quick Links
 
@@ -201,6 +274,8 @@ mount: /srv/docker/quicklinks -> /usr/share/nginx/html:ro
 ```
 
 The live page is a polished responsive 12-card launcher and all cards now point to the clean private HTTPS hostnames.
+
+The preferred clean URL has also been added to the iPhone Home Screen.
 
 ## Home Assistant
 
@@ -281,7 +356,7 @@ Backups are stored under:
 
 A Windows pull workflow also copies server backups off the R515.
 
-Create a fresh Docker/config backup and Home Assistant backup after the completed domain/reverse-proxy rollout.
+A fresh backup checkpoint was completed after the private-domain and Home Assistant reverse-proxy work.
 
 ## Safety
 
@@ -289,4 +364,5 @@ Create a fresh Docker/config backup and Home Assistant backup after the complete
 - Keep private R515 service hostnames LAN/UniFi Teleport only.
 - Keep the Caddy `private_only` gate on all private `r515` sites.
 - Keep qBittorrent behind Gluetun/Mullvad.
+- Keep Byparr port `8191` private/LAN-only.
 - Keep a DNS rollback plan for AdGuard.
