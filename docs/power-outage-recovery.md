@@ -1,6 +1,6 @@
 # Power-Outage / Reboot Recovery
 
-This document tracks the automatic recovery flow added after a September 2026 power outage exposed a boot-order problem on `docker01`.
+This document tracks the automatic recovery flow added after a September 2026 power outage exposed boot-order, storage-mount, and Byparr DNS/readiness problems on `docker01`.
 
 ## Failure observed
 
@@ -9,7 +9,7 @@ After the outage:
 - raw service IPs came back before the clean Caddy hostnames;
 - public Jellyfin was temporarily unavailable;
 - qBittorrent torrents entered `Errored` state;
-- Prowlarr indexers were unavailable while Byparr was not ready;
+- Prowlarr indexers failed while Byparr was not actually able to reach public sites;
 - `/mnt/storage` mounted noticeably later than the Debian VM and Docker startup sequence.
 
 The main storage device is:
@@ -18,13 +18,15 @@ The main storage device is:
 /dev/sdb1 -> /mnt/storage
 ```
 
-The important failure mode is Docker containers starting before the real `/mnt/storage` filesystem is mounted. A bind mount can then attach to the empty underlying directory instead of the mounted 3 TB disk.
+The main storage failure mode was Docker containers starting before the real `/mnt/storage` filesystem was mounted. A bind mount can then attach to the empty underlying directory instead of the mounted 3 TB disk.
 
-## Automatic recovery design
+A second, separate failure affected Byparr: the Byparr web server could be reachable while Camoufox/browser requests still failed DNS resolution. `/docs` returning `200` was therefore not sufficient proof that Byparr was usable.
+
+## Final automatic recovery design
 
 Two systemd oneshot services are enabled on `docker01`.
 
-### Main post-boot recovery
+### 1. Main post-boot recovery
 
 ```text
 Unit:   r515-postboot-recovery.service
@@ -43,37 +45,56 @@ Purpose:
 8. recreate qBittorrent after storage and VPN readiness;
 9. report final service status.
 
-The unit is enabled at boot and is expected to finish as:
+Expected successful state:
 
 ```text
 active (exited)
 status=0/SUCCESS
 ```
 
-### Byparr / Prowlarr recovery
+### 2. Byparr / Prowlarr recovery v5
 
 ```text
 Unit:   r515-byparr-recovery.service
 Script: /usr/local/sbin/r515-byparr-recovery.sh
 ```
 
-It runs after the main post-boot recovery service.
+This unit runs after `r515-postboot-recovery.service`.
 
-Purpose:
+Final behavior:
 
-1. ensure Byparr is started;
-2. accept Docker `healthy` state when available;
-3. while Docker health is still `starting`, use the Byparr `/docs` HTTP endpoint as an application-readiness fallback;
-4. recreate Byparr only if it fails to become reachable;
-5. restart Prowlarr after Byparr is ready.
+1. ensure Byparr is running;
+2. call the real Byparr `/health` endpoint rather than using `/docs` as the readiness test;
+3. require the expected `"msg":"Byparr is working!"` response;
+4. if real health fails, recreate Byparr at most once per boot;
+5. avoid a repeated destructive recreate loop by using `/run/r515-byparr-recreated-this-boot` as a per-boot marker;
+6. restart Prowlarr only after Byparr passes the real health check;
+7. allow systemd to retry the oneshot after a failure without repeatedly recreating Byparr.
+
+Byparr is configured with independent public DNS:
+
+```yaml
+dns:
+  - 1.1.1.1
+  - 8.8.8.8
+```
+
+This intentionally removes Byparr's public scraping/browser traffic from dependency on the local AdGuard instance. AdGuard still provides the LAN/internal `*.r515.allenfamhouse.com` DNS namespace.
 
 Do not automatically pull a new Byparr image during every boot. Image pulls remain a manual troubleshooting step.
 
-## Validated controlled reboot
+## Bugs found while building the recovery flow
 
-A controlled Debian VM reboot was performed on September 9, 2026.
+Two intermediate recovery versions were intentionally superseded:
 
-After reboot:
+- An early version treated `/docs` as sufficient readiness. This could pass while Byparr's browser still had broken DNS.
+- v4 wrote the health response to `/tmp/byparr-real-health`. The systemd service received `Permission denied`, falsely declared Byparr unhealthy, recreated it, and retried every minute.
+
+v5 no longer writes the health result to that `/tmp` path. It captures the response in memory and validates the real `/health` payload.
+
+## Validated recovery checkpoints
+
+A controlled Debian VM reboot on September 9, 2026 verified the main boot recovery path:
 
 ```text
 /mnt/storage                         mounted read/write from /dev/sdb1
@@ -81,7 +102,6 @@ r515-postboot-recovery.service      active (exited), SUCCESS
 r515-byparr-recovery.service        active (exited), SUCCESS
 qBittorrent                         attached to real /mnt/storage/downloads
 Gluetun                             healthy
-Byparr                              HTTP endpoint reachable
 Jellyfin                            healthy
 Quick Links                         HTTP 200
 Internal Jellyfin                   HTTP 302
@@ -91,7 +111,9 @@ Internal DNS                        links.r515.allenfamhouse.com -> 192.168.10.1
 
 The qBittorrent storage marker test confirmed that `/downloads` inside the container maps to the currently mounted storage filesystem after recovery.
 
-Byparr may continue to display Docker `health: starting` for some time even while its HTTP application endpoint is already reachable. The boot recovery logic accounts for this rather than treating `starting` alone as failure.
+After the reboot, a later Prowlarr failure exposed the Byparr DNS issue. Byparr `/health` returned `502` with `NS_ERROR_UNKNOWN_HOST` while `/docs` still returned `200`. Byparr was changed to `1.1.1.1` and `8.8.8.8`; the real `/health` endpoint then returned `200` and `Byparr is working!`.
+
+The final v5 recovery service completed as `active (exited)` with `status=0/SUCCESS`, restarted Prowlarr, and Prowlarr's indexer tests were all green.
 
 ## Useful commands
 
@@ -108,16 +130,11 @@ sudo journalctl -u r515-postboot-recovery.service -b --no-pager
 sudo journalctl -u r515-byparr-recovery.service -b --no-pager
 ```
 
-Manually rerun the main recovery service:
+Run the Byparr recovery without making the terminal appear stuck:
 
 ```bash
-sudo systemctl restart r515-postboot-recovery.service
-```
-
-Manually rerun Byparr/Prowlarr recovery:
-
-```bash
-sudo systemctl restart r515-byparr-recovery.service
+sudo systemctl restart --no-block r515-byparr-recovery.service
+sudo journalctl -fu r515-byparr-recovery.service
 ```
 
 Check storage:
@@ -127,25 +144,47 @@ findmnt -T /mnt/storage
 df -h /mnt/storage
 ```
 
+Confirm qBittorrent is attached to the live storage mount with a marker file if needed.
+
 Check Gluetun:
 
 ```bash
 sudo docker inspect gluetun --format 'Health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}'
 ```
 
-Check Byparr application readiness:
+Check real Byparr health:
 
 ```bash
-curl -fsS --max-time 5 http://127.0.0.1:8191/docs >/dev/null && echo READY
+curl -i --max-time 15 http://127.0.0.1:8191/health
+```
+
+Expected result:
+
+```text
+HTTP/1.1 200 OK
+{"msg":"Byparr is working!", ...}
+```
+
+Confirm Byparr's configured DNS:
+
+```bash
+CID=$(sudo docker compose -f /srv/docker/docker-compose.yml ps -q byparr)
+sudo docker inspect "$CID" --format 'Byparr DNS={{json .HostConfig.Dns}}'
+```
+
+Expected:
+
+```text
+Byparr DNS=["1.1.1.1","8.8.8.8"]
 ```
 
 ## After a future outage
 
-The expected behavior is automatic recovery with no manual intervention. If something is still unavailable after several minutes, inspect the two systemd units and their current-boot journals before manually recreating containers.
+Expected behavior is automatic recovery with no manual intervention. If something is still unavailable after several minutes, inspect the two systemd units and their current-boot journals before manually recreating containers.
 
-For qBittorrent, do not force-resume torrents if `/mnt/storage` is not mounted. Verify the mount first.
+For qBittorrent, do not force-resume torrents if `/mnt/storage` is not mounted. Verify the mount first. If qBittorrent started against the wrong underlying directory, recreate it after the disk is mounted and then force recheck the affected torrents.
 
-For Prowlarr/Byparr, confirm the Byparr HTTP endpoint is reachable before treating a lingering Docker `health: starting` state as an actual failure.
+For Prowlarr/Byparr, use `/health`, not `/docs`, as the functional test. A reachable Swagger/docs page only proves the FastAPI web server is up; it does not prove Camoufox/browser DNS and outbound access are working.
 
 ## Security / safety
 
@@ -153,4 +192,5 @@ For Prowlarr/Byparr, confirm the Byparr HTTP endpoint is reachable before treati
 - Jellyfin remains the only intentionally public service.
 - Internal R515 services remain LAN / UniFi Teleport only.
 - qBittorrent remains behind Gluetun/Mullvad.
+- Byparr remains LAN-only on port `8191`.
 - Do not commit passwords, tokens, API keys, Mullvad credentials, or private keys.
