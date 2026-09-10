@@ -40,7 +40,7 @@ Filtering started conservatively with the default AdGuard DNS filter, then HaGeZ
 
 ## R515 internal DNS
 
-AdGuard now provides the private service namespace used by Caddy:
+AdGuard provides the private service namespace used by Caddy:
 
 ```text
 *.r515.allenfamhouse.com -> 192.168.10.135
@@ -66,6 +66,24 @@ jellyfin.r515.allenfamhouse.com
 ```
 
 The wildcard DNS rewrite is convenience/routing, not the only security boundary. Since WAN port `443` reaches Caddy for public Jellyfin, Caddy also enforces a `private_only` remote-IP gate on every private R515 hostname.
+
+## Byparr DNS exception
+
+Byparr intentionally does **not** use AdGuard as its container DNS anymore.
+
+After the September 2026 power-outage/reboot testing, Byparr's FastAPI `/docs` page was reachable while its browser layer failed with `NS_ERROR_UNKNOWN_HOST`. The real `/health` endpoint returned `502`, and logs showed public-name resolution failures such as `checkip.amazonaws.com`.
+
+Prowlarr could still resolve public DNS at the same time, so the problem was isolated to Byparr's DNS path.
+
+Byparr now uses direct public resolvers in Compose:
+
+```yaml
+dns:
+  - 1.1.1.1
+  - 8.8.8.8
+```
+
+This is a narrow container-level exception. It does **not** change UniFi DHCP DNS and does not bypass AdGuard for normal LAN clients. AdGuard remains the authoritative convenience resolver for the private `*.r515.allenfamhouse.com` namespace.
 
 ## Tests completed
 
@@ -120,6 +138,7 @@ Expected tradeoff:
 3. Keep AdGuard monitored in Uptime Kuma.
 4. Keep a rollback path ready.
 5. If R515 internal hostnames stop resolving, verify the wildcard rewrite before changing Caddy.
+6. If only Byparr has public DNS failures, check its explicit Compose DNS before changing AdGuard.
 
 ## Safety rules
 
@@ -127,5 +146,5 @@ Expected tradeoff:
 - Do not expose DNS port `53`, admin port `3002`, or the clean AdGuard hostname publicly.
 - Keep a rollback plan: set UniFi DHCP DNS back to Auto or the previous resolver if needed.
 - Avoid adding many blocklists at once.
-- Do not add `1.1.1.1` or `8.8.8.8` as DHCP secondary DNS if the goal is consistent AdGuard use.
+- Do not add `1.1.1.1` or `8.8.8.8` as DHCP secondary DNS if the goal is consistent AdGuard use. The Byparr container exception is separate from DHCP DNS.
 - Do not store secrets or credentials in this repository.
