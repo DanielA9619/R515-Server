@@ -25,6 +25,7 @@ The server is live and currently running:
 - AdGuard Home as main-LAN DNS
 - Homarr desktop dashboard
 - Quick Links mobile launcher
+- automatic post-boot storage/service recovery for outage/reboot handling
 
 ## Public Service
 
@@ -154,6 +155,8 @@ Preferred URL:
 https://links.r515.allenfamhouse.com
 ```
 
+The clean Quick Links URL has also been added to the iPhone Home Screen.
+
 ## Caddy Private-Only Design
 
 Because public Jellyfin requires WAN `443` to reach Caddy, private DNS alone is not sufficient to protect internal services. Private R515 sites import:
@@ -169,11 +172,52 @@ The public `mediahubdaniel.duckdns.org` site does not import this matcher.
 
 A stale single-file Caddy bind-mount issue was repaired by recreating only the Caddy Compose service. The host and mounted container Caddyfile hashes were confirmed identical afterward.
 
+## Power-Outage / Reboot Recovery
+
+A September 2026 power outage exposed a real boot-order problem: `/mnt/storage` could mount after Docker had already started storage-dependent containers. qBittorrent then saw the wrong underlying directory and torrents entered `Errored` state.
+
+The final recovery design uses two enabled systemd oneshot services:
+
+```text
+r515-postboot-recovery.service
+r515-byparr-recovery.service
+```
+
+The main recovery waits for `/mnt/storage`, confirms it is writable, recreates storage-dependent containers against the real mount, waits for Gluetun, and then recreates qBittorrent.
+
+Byparr also exposed a separate DNS/readiness issue after reboot. Its `/docs` page could return `200` while its browser layer failed public DNS with `NS_ERROR_UNKNOWN_HOST`. Byparr now uses direct public DNS:
+
+```yaml
+dns:
+  - 1.1.1.1
+  - 8.8.8.8
+```
+
+The final v5 Byparr/Prowlarr recovery checks the real `/health` endpoint, recreates Byparr at most once per boot if needed, and only restarts Prowlarr after Byparr is functionally healthy.
+
+Validated final state:
+
+```text
+/mnt/storage                    mounted read/write
+main post-boot recovery         active (exited), SUCCESS
+Byparr/Prowlarr recovery v5     active (exited), SUCCESS
+qBittorrent                     real storage bind verified
+Gluetun                         healthy
+Byparr /health                  HTTP 200
+Prowlarr indexer Test All       all green
+Jellyfin                        healthy
+Quick Links                     HTTP 200
+Internal Jellyfin               HTTP 302
+Public Jellyfin                 HTTP 302
+```
+
+See [`docs/power-outage-recovery.md`](docs/power-outage-recovery.md) for the full root-cause history and recovery commands.
+
 ## Verification Checkpoint — September 2026
 
 The internal-domain rollout is complete. The clean private URLs for Quick Links, Seerr, Radarr, Sonarr, qBittorrent, Uptime Kuma, Prowlarr, Portainer, AdGuard, Proxmox, Homarr, Home Assistant, and Jellyfin are working through Caddy on LAN / UniFi Teleport.
 
-Public Jellyfin remained working throughout the rollout, and Caddy was confirmed able to resolve and reach the Let's Encrypt ACME endpoint.
+Public Jellyfin and the private service routes were revalidated after the controlled reboot/outage-recovery work.
 
 ## Home Assistant Reverse Proxy
 
@@ -195,6 +239,7 @@ https://ha.r515.allenfamhouse.com
 ## Documentation
 
 - [`docs/current-config.md`](docs/current-config.md) — current known server configuration
+- [`docs/power-outage-recovery.md`](docs/power-outage-recovery.md) — validated boot/outage recovery, root causes, and troubleshooting
 - [`docs/domains.md`](docs/domains.md) — active public/private domains, internal DNS, and Caddy private routing
 - [`docs/quicklinks.md`](docs/quicklinks.md) — mobile Quick Links launcher
 - [`docs/service-dashboard.md`](docs/service-dashboard.md) — Homarr desktop + Quick Links mobile dashboard strategy
@@ -204,7 +249,7 @@ https://ha.r515.allenfamhouse.com
 - [`docs/home-assistant-migration.md`](docs/home-assistant-migration.md) — HAOS VM migration/status
 - [`docs/media-library-maintenance.md`](docs/media-library-maintenance.md) — media cleanup checks
 - [`docs/sms-bot.md`](docs/sms-bot.md) — local SMS request bot
-- [`docs/byparr.md`](docs/byparr.md) — Byparr helper service
+- [`docs/byparr.md`](docs/byparr.md) — Byparr DNS, health, and recovery details
 - [`docs/seerr.md`](docs/seerr.md) — Seerr notes
 - [`docs/windows-backup-pull.md`](docs/windows-backup-pull.md) — Windows backup pull
 - [`docs/server-backup-creation.md`](docs/server-backup-creation.md) — Debian-side backup creation
@@ -214,11 +259,11 @@ https://ha.r515.allenfamhouse.com
 
 ## Current Priorities
 
-1. Make a fresh Debian/Docker config backup and a fresh Home Assistant backup now that the private-domain rollout is complete.
-2. Add Quick Links to the iPhone Home Screen and add one R515 button in Home Assistant that opens `https://links.r515.allenfamhouse.com`.
+1. Leave the now-stable outage-recovery stack running and monitor normal behavior rather than repeatedly rebooting it.
+2. Add one R515 button in Home Assistant that opens `https://links.r515.allenfamhouse.com` if still desired.
 3. Verify the HAOS VM's devices/integrations and keep the Raspberry Pi fallback untouched until the VM has proven stable.
-4. Continue normal media-library and AdGuard monitoring.
-5. Decide the next major service/tooling step: Immich, Tdarr test, or another homelab project.
+4. Continue normal media-library, AdGuard, and Prowlarr/Byparr monitoring.
+5. Plan the next major service/tooling step, with Immich as the leading candidate; design storage and backup architecture before deployment.
 
 ## Important Safety Notes
 
@@ -226,4 +271,5 @@ https://ha.r515.allenfamhouse.com
 - Keep qBittorrent, Prowlarr, Radarr, Sonarr, Byparr, Seerr, Portainer, Uptime Kuma, AdGuard Home, Homarr, Proxmox, Home Assistant, Quick Links, and the internal Jellyfin alias private/LAN/Teleport-only.
 - Do not remove the Caddy `private_only` gate from private R515 sites.
 - Keep qBittorrent behind Gluetun/Mullvad.
+- Keep Byparr port `8191` private; direct public DNS is outbound-only and does not change exposure.
 - Keep a DNS rollback plan available if AdGuard causes problems.
