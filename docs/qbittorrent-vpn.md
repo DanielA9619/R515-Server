@@ -19,7 +19,7 @@ qBittorrent torrent traffic
 
 ## Current status
 
-Working as of September 6, 2026.
+Working as of September 2026.
 
 Confirmed:
 
@@ -29,10 +29,10 @@ Confirmed:
 - Direct LAN Web UI: `http://192.168.10.135:8080`.
 - Preferred private HTTPS Web UI: `https://qbittorrent.r515.allenfamhouse.com`.
 - Caddy reverse proxies the clean hostname to `gluetun:8080`.
-- The clean hostname returned HTTP `200` after the Caddy mount issue was repaired.
 - qBittorrent Web UI password has been changed from the temporary/default password.
-- qBittorrent remains bound to the VPN interface after an earlier stalled-torrent issue.
+- qBittorrent remains bound to the VPN interface.
 - Uptime Kuma monitors qBittorrent.
+- after the September power-outage recovery work, a controlled reboot verified that qBittorrent sees the real mounted `/mnt/storage/downloads` path after boot.
 
 ## Caddy route
 
@@ -91,6 +91,63 @@ docker exec qbittorrent ip addr
 
 Because qBittorrent shares Gluetun's network namespace, it should see the same VPN interface.
 
+## September 2026 power-outage failure
+
+After a power outage, qBittorrent came back with torrents in `Errored` state even though the 3 TB disk eventually appeared mounted and writable.
+
+The underlying problem was boot order: Docker could start qBittorrent before `/mnt/storage` had mounted. The bind mount:
+
+```text
+/mnt/storage/downloads -> /downloads
+```
+
+could therefore attach to the empty underlying mountpoint directory instead of the actual 3 TB filesystem.
+
+The outage logs showed `/dev/sdb1` mounting noticeably after the Debian VM had already started bringing Docker services up.
+
+### Recovery used
+
+The successful manual recovery was:
+
+1. confirm `/mnt/storage` is really mounted;
+2. confirm `/mnt/storage/downloads` exists and is writable;
+3. ensure Gluetun is healthy;
+4. force-recreate qBittorrent so its bind mount is attached to the already-mounted filesystem;
+5. verify a marker created on the host under `/mnt/storage/downloads` appears inside the container as `/downloads/...`;
+6. force recheck affected torrents;
+7. resume normally.
+
+Do not force-resume errored torrents before verifying the real storage mount.
+
+## Automatic boot protection
+
+The enabled systemd service:
+
+```text
+r515-postboot-recovery.service
+```
+
+runs:
+
+```text
+/usr/local/sbin/r515-postboot-recovery.sh
+```
+
+Its qBittorrent-related sequence is:
+
+```text
+wait for /mnt/storage
+  -> verify storage is writable
+  -> bring Compose stack up
+  -> recreate storage-dependent containers
+  -> wait for Gluetun healthy
+  -> recreate qBittorrent
+```
+
+A controlled reboot verified this flow and the qBittorrent storage-marker test passed afterward.
+
+See [`power-outage-recovery.md`](power-outage-recovery.md) for the full outage/reboot recovery design.
+
 ## Secrets
 
 Local VPN secrets are stored in:
@@ -112,7 +169,7 @@ Never commit their values.
 
 ## Paths
 
-Recommended container paths:
+Container paths:
 
 ```text
 Default save path: /downloads/complete
@@ -137,4 +194,5 @@ Host paths:
 - Do not expose qBittorrent directly to the public internet.
 - Do not weaken Host-header/CSRF/clickjacking protections merely to make a reverse proxy work.
 - If Gluetun becomes unhealthy, treat qBittorrent as offline until VPN tests pass again.
+- After a reboot/outage, verify `/mnt/storage` before troubleshooting torrent-level errors.
 - Never commit Mullvad private keys or other credentials.
