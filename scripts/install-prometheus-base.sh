@@ -20,6 +20,23 @@ section() {
   printf '\n\n=== %s ===\n' "$1"
 }
 
+port_in_use() {
+  local port="$1"
+  ss -lntH | awk '{print $4}' | grep -Eq "(^|:)${port}$"
+}
+
+node_ready() {
+  local tmp
+  tmp="$(mktemp)"
+  if curl -fsS --max-time 5 -o "$tmp" "http://${HOST_IP}:9100/metrics" \
+      && grep -q '^node_cpu_seconds_total' "$tmp"; then
+    rm -f "$tmp"
+    return 0
+  fi
+  rm -f "$tmp"
+  return 1
+}
+
 section "R515 PROMETHEUS BASE INSTALL"
 
 echo "Prometheus:    ${PROM_VERSION}"
@@ -33,30 +50,42 @@ command -v curl >/dev/null || { echo "ERROR: curl missing"; exit 1; }
 command -v tar >/dev/null || { echo "ERROR: tar missing"; exit 1; }
 command -v sha256sum >/dev/null || { echo "ERROR: sha256sum missing"; exit 1; }
 
-for PORT in 9090 9100; do
-  if ss -lntH | awk '{print $4}' | grep -Eq "(^|:)${PORT}$"; then
-    echo "ERROR: TCP port ${PORT} is already in use."
-    ss -lntp | grep ":${PORT}" || true
+if port_in_use 9090; then
+  if [ -f "${BASE_DIR}/docker-compose.yml" ] && docker ps --format '{{.Names}}' | grep -qx prometheus; then
+    echo "INFO: port 9090 is already owned by the existing Prometheus deployment; continuing."
+  else
+    echo "ERROR: TCP port 9090 is already in use by something other than this monitoring stack."
+    ss -lntp | grep ':9090' || true
     exit 1
   fi
-done
+else
+  echo "PASS: port 9090 available."
+fi
 
-echo "PASS: required ports 9090 and 9100 are free."
+section "INSTALL / VERIFY NODE_EXPORTER"
 
-section "INSTALL NODE_EXPORTER"
-TMPDIR="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR"' EXIT
-NODE_ARCHIVE="node_exporter-${NODE_VERSION}.linux-amd64.tar.gz"
-NODE_URL="https://github.com/prometheus/node_exporter/releases/download/v${NODE_VERSION}/${NODE_ARCHIVE}"
+if systemctl is-active --quiet node-exporter.service && node_ready; then
+  echo "PASS: existing node_exporter service is active and serving host metrics."
+else
+  if port_in_use 9100 && ! systemctl is-active --quiet node-exporter.service; then
+    echo "ERROR: TCP port 9100 is in use but node-exporter.service is not the active owner."
+    ss -lntp | grep ':9100' || true
+    exit 1
+  fi
 
-curl -fL "$NODE_URL" -o "${TMPDIR}/${NODE_ARCHIVE}"
-echo "${NODE_SHA256}  ${TMPDIR}/${NODE_ARCHIVE}" | sha256sum -c -
-tar -xzf "${TMPDIR}/${NODE_ARCHIVE}" -C "$TMPDIR"
-install -m 0755 "${TMPDIR}/node_exporter-${NODE_VERSION}.linux-amd64/node_exporter" "$NODE_BIN"
-mkdir -p "$NODE_DIR"
-chmod 0755 /var/lib/node_exporter "$NODE_DIR"
+  TMPDIR="$(mktemp -d)"
+  trap 'rm -rf "$TMPDIR"' EXIT
+  NODE_ARCHIVE="node_exporter-${NODE_VERSION}.linux-amd64.tar.gz"
+  NODE_URL="https://github.com/prometheus/node_exporter/releases/download/v${NODE_VERSION}/${NODE_ARCHIVE}"
 
-cat > /etc/systemd/system/node-exporter.service <<EOF
+  curl -fL "$NODE_URL" -o "${TMPDIR}/${NODE_ARCHIVE}"
+  echo "${NODE_SHA256}  ${TMPDIR}/${NODE_ARCHIVE}" | sha256sum -c -
+  tar -xzf "${TMPDIR}/${NODE_ARCHIVE}" -C "$TMPDIR"
+  install -m 0755 "${TMPDIR}/node_exporter-${NODE_VERSION}.linux-amd64/node_exporter" "$NODE_BIN"
+  mkdir -p "$NODE_DIR"
+  chmod 0755 /var/lib/node_exporter "$NODE_DIR"
+
+  cat > /etc/systemd/system/node-exporter.service <<EOF
 [Unit]
 Description=Prometheus Node Exporter for docker01
 Wants=network-online.target
@@ -74,21 +103,22 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-systemctl daemon-reload
-systemctl enable --now node-exporter.service
+  systemctl daemon-reload
+  systemctl enable --now node-exporter.service
 
-for i in $(seq 1 20); do
-  if curl -fsS --max-time 3 "http://${HOST_IP}:9100/metrics" | grep -q '^node_cpu_seconds_total'; then
-    echo "PASS: node_exporter is serving host metrics."
-    break
-  fi
-  if [ "$i" -eq 20 ]; then
-    echo "ERROR: node_exporter did not become ready."
-    systemctl status node-exporter.service --no-pager -l || true
-    exit 1
-  fi
-  sleep 1
-done
+  for i in $(seq 1 20); do
+    if node_ready; then
+      echo "PASS: node_exporter is serving host metrics."
+      break
+    fi
+    if [ "$i" -eq 20 ]; then
+      echo "ERROR: node_exporter did not become ready."
+      systemctl status node-exporter.service --no-pager -l || true
+      exit 1
+    fi
+    sleep 1
+  done
+fi
 
 section "CREATE PROMETHEUS + CADVISOR STACK"
 mkdir -p "${BASE_DIR}/prometheus/data"
