@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -u
 
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+  echo "This script should be run as root."
+  echo "Use: sudo bash $0"
+  exit 1
+fi
+
 cd /srv/docker 2>/dev/null || true
 
 section() {
@@ -12,7 +18,7 @@ date
 hostnamectl 2>/dev/null | sed -n '1,8p' || hostname
 
 section "RECOVERY SERVICES"
-sudo systemctl status r515-postboot-recovery.service r515-byparr-recovery.service --no-pager -l 2>/dev/null | sed -n '1,80p' || true
+systemctl status r515-postboot-recovery.service r515-byparr-recovery.service --no-pager -l 2>/dev/null | sed -n '1,80p' || true
 
 section "STORAGE MOUNT"
 findmnt -T /mnt/storage || true
@@ -24,7 +30,7 @@ lsblk -o NAME,KNAME,PATH,TYPE,SIZE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL,TRAN 2>/dev/n
 section "SMART VISIBILITY"
 if command -v smartctl >/dev/null 2>&1; then
   echo "smartctl: $(command -v smartctl)"
-  sudo smartctl --scan-open || true
+  smartctl --scan-open || true
 
   STORAGE_SOURCE=$(findmnt -n -o SOURCE -T /mnt/storage 2>/dev/null || true)
   echo "Storage source: ${STORAGE_SOURCE:-unknown}"
@@ -38,7 +44,7 @@ if command -v smartctl >/dev/null 2>&1; then
     fi
 
     echo "Likely storage disk for SMART: $STORAGE_DISK"
-    sudo smartctl -a "$STORAGE_DISK" 2>&1 | sed -n '1,140p' || true
+    smartctl -a "$STORAGE_DISK" 2>&1 | sed -n '1,140p' || true
   fi
 else
   echo "smartctl is NOT installed. No package was installed by this preflight."
@@ -58,15 +64,15 @@ fi
 
 section "DOCKER STATUS"
 if command -v docker >/dev/null 2>&1; then
-  sudo docker compose ps 2>/dev/null || sudo docker ps
+  docker compose ps 2>/dev/null || docker ps
   echo
-  sudo docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}' 2>/dev/null || true
+  docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}' 2>/dev/null || true
 else
   echo "docker not found"
 fi
 
 section "LISTENING PORTS"
-sudo ss -lntup 2>/dev/null | sed -n '1,220p' || ss -lnt 2>/dev/null || true
+ss -lntup 2>/dev/null | sed -n '1,220p' || ss -lnt 2>/dev/null || true
 
 section "BACKUP SCRIPT"
 if [ -x /srv/docker/scripts/backup-r515-configs.sh ]; then
