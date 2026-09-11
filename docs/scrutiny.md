@@ -77,7 +77,18 @@ The active scheduling component is:
 scrutiny-collector.timer
 ```
 
-During the first collection, `/dev/sdd` returned smartctl exit code `4` with a checksum warning. Scrutiny still published that device's results and the overall collection completed successfully. This warning is isolated to `/dev/sdd`; it is not the 3 TB `/dev/sdb` bulk/media disk. Inspect the resulting SMART data before deciding whether the warning represents a meaningful disk-health problem.
+The Scrutiny UI was visually validated on 2026-09-11 and lists all four physical drives under host ID `r515-proxmox`:
+
+```text
+/dev/sda  SK hynix SC311 SATA 256GB       Passed   26 C   238.5 GiB
+/dev/sdb  Seagate ST330006CLAR3000        Passed   34 C   2.7 TiB
+/dev/sdc  Seagate ST9146853SS             Passed   34 C   136.7 GiB
+/dev/sdd  Seagate ST9146853SS             Passed   32 C   136.7 GiB
+```
+
+The 3 TB bulk/media disk `/dev/sdb` therefore has real SMART data visible in Scrutiny and currently reports `Passed` at 34 C.
+
+During the first collection, `/dev/sdd` returned smartctl exit code `4` with a checksum warning. Scrutiny still published that device's results and the UI currently reports the drive as `Passed`. Keep the checksum warning documented and watch future collections rather than treating it as an immediate failure.
 
 ## docker01 hub
 
@@ -159,8 +170,8 @@ Phase 1 is complete only when:
 
 1. Scrutiny web and InfluxDB are healthy. **PASS**
 2. The Proxmox collector service succeeds. **PASS**
-3. The UI lists the physical R515 disks. **Pending visual confirmation**
-4. The 3 TB Seagate SAS disk appears with real SMART data. **Pending visual confirmation**
+3. The UI lists the physical R515 disks. **PASS**
+4. The 3 TB Seagate SAS disk appears with real SMART data. **PASS**
 5. Historical data starts accumulating. **Collector timer enabled; verify after additional runs**
 6. The clean private Caddy URL works. **Pending**
 7. Uptime Kuma has a Scrutiny monitor. **Pending**
