@@ -1,6 +1,6 @@
 # Scrutiny SMART Monitoring
 
-Scrutiny is being added as the disk-health layer for the R515 observability/control-plane project.
+Scrutiny is the disk-health layer for the R515 observability/control-plane project.
 
 ## Final architecture
 
@@ -44,6 +44,41 @@ Initial deployment is pinned to Scrutiny `v0.9.3` rather than a `latest` tag.
 
 The Proxmox collector installer verifies the official Linux AMD64 collector binary against the release SHA-256 before installing it.
 
+## Current deployment status
+
+Scrutiny hub deployment on `docker01` succeeded.
+
+Current hub state:
+
+```text
+scrutiny-influxdb   healthy
+scrutiny-web        running
+hub API             healthy
+```
+
+Direct private endpoint:
+
+```text
+http://192.168.10.135:8082
+```
+
+The Proxmox collector is also installed and working. The initial run completed successfully and published SMART results to the hub. The timer is enabled and runs every 30 minutes.
+
+The collector is a `Type=oneshot` service, so this is the expected state between collection runs:
+
+```text
+inactive (dead)
+status=0/SUCCESS
+```
+
+The active scheduling component is:
+
+```text
+scrutiny-collector.timer
+```
+
+During the first collection, `/dev/sdd` returned smartctl exit code `4` with a checksum warning. Scrutiny still published that device's results and the overall collection completed successfully. This warning is isolated to `/dev/sdd`; it is not the 3 TB `/dev/sdb` bulk/media disk. Inspect the resulting SMART data before deciding whether the warning represents a meaningful disk-health problem.
+
 ## docker01 hub
 
 Installer:
@@ -68,12 +103,6 @@ Services:
 
 - `scrutiny-web`
 - `scrutiny-influxdb`
-
-Direct private endpoint:
-
-```text
-http://192.168.10.135:8082
-```
 
 InfluxDB is not intentionally exposed on a host port.
 
@@ -116,7 +145,7 @@ http://192.168.10.135:8082
 
 ## Planned private domain
 
-After direct hub + collector validation, add:
+After direct UI/device validation, add:
 
 ```text
 https://scrutiny.r515.allenfamhouse.com
@@ -128,13 +157,13 @@ The Caddy site must use `private_only` and `tls internal`. The raw `8082` endpoi
 
 Phase 1 is complete only when:
 
-1. Scrutiny web and InfluxDB are healthy.
-2. The Proxmox collector service succeeds.
-3. The UI lists the physical R515 disks.
-4. The 3 TB Seagate SAS disk appears with real SMART data.
-5. Historical data starts accumulating.
-6. The clean private Caddy URL works.
-7. Uptime Kuma has a Scrutiny monitor.
+1. Scrutiny web and InfluxDB are healthy. **PASS**
+2. The Proxmox collector service succeeds. **PASS**
+3. The UI lists the physical R515 disks. **Pending visual confirmation**
+4. The 3 TB Seagate SAS disk appears with real SMART data. **Pending visual confirmation**
+5. Historical data starts accumulating. **Collector timer enabled; verify after additional runs**
+6. The clean private Caddy URL works. **Pending**
+7. Uptime Kuma has a Scrutiny monitor. **Pending**
 
 ## Script convention
 
