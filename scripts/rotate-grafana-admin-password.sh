@@ -18,7 +18,9 @@ NEW_PASSWORD="$(openssl rand -hex 24)"
 
 # Grafana stores the active admin password in its database after first boot,
 # so reset it with the Grafana CLI rather than only changing the environment.
-docker exec "$CONTAINER" grafana cli admin reset-admin-password "$NEW_PASSWORD" >/dev/null
+docker exec "$CONTAINER" \
+  grafana cli --homepath /usr/share/grafana \
+  admin reset-admin-password "$NEW_PASSWORD" >/dev/null
 
 if [ -f "$ENV_FILE" ]; then
   TMP="$(mktemp)"
