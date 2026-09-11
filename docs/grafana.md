@@ -40,6 +40,40 @@ https://grafana.r515.allenfamhouse.com
 
 The clean URL must remain LAN / UniFi Teleport only and use the normal Caddy `private_only` gate with internal TLS.
 
+## Current deployment status
+
+Grafana 13.2.1 is installed and running on `docker01`.
+
+Validated state:
+
+```text
+container                  grafana
+direct port                192.168.10.135:3003
+/api/health                healthy
+Grafana database           ok
+Prometheus datasource      provisioned successfully
+anonymous access           disabled
+user signup                disabled
+```
+
+Prometheus is provisioned automatically as the default datasource.
+
+The generated initial admin credential is stored locally in:
+
+```text
+/srv/docker/monitoring/grafana/.env
+```
+
+Do not commit this file or its password.
+
+If an admin password is ever exposed in terminal logs, chat, screenshots, or other records, rotate it using:
+
+```text
+scripts/rotate-grafana-admin-password.sh
+```
+
+The helper uses the Grafana CLI to reset the password in the Grafana database and then updates the local `.env` copy so the local credential record stays in sync.
+
 ## Installer
 
 ```text
