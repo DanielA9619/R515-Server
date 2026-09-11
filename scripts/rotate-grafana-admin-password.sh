@@ -41,10 +41,18 @@ if [ -f "$ENV_FILE" ]; then
 
   cat "$TMP" > "$ENV_FILE"
   chmod 600 "$ENV_FILE"
+else
+  umask 077
+  cat > "$ENV_FILE" <<EOF
+GF_SECURITY_ADMIN_USER=admin
+GF_SECURITY_ADMIN_PASSWORD=${NEW_PASSWORD}
+EOF
 fi
+
+unset NEW_PASSWORD
 
 echo "Grafana admin password reset successfully."
 echo "Username: admin"
-echo "Password: ${NEW_PASSWORD}"
-echo
-echo "Save this password somewhere secure."
+echo "Password saved locally in: ${ENV_FILE}"
+echo "To view it manually: grep '^GF_SECURITY_ADMIN_PASSWORD=' '${ENV_FILE}'"
+echo "The password is intentionally not printed by this script."
