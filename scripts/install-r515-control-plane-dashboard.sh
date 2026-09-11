@@ -56,7 +56,7 @@ panels=[
  stat(1,"Prometheus",'up{job="prometheus"}',0,0,status=True),
  stat(2,"node_exporter",'up{job="docker01"}',6,0,status=True),
  stat(3,"cAdvisor",'up{job="cadvisor"}',12,0,status=True),
- stat(4,"Storage Mount",'clamp_max(count(node_filesystem_size_bytes{job="docker01",mountpoint="/mnt/storage"}),1)',18,0,status=True),
+ stat(4,"Storage Mount",'(clamp_max(count(node_filesystem_size_bytes{job="docker01",mountpoint="/mnt/storage"}),1)) or vector(0)',18,0,status=True),
  stat(5,"CPU Usage",'100-(avg(rate(node_cpu_seconds_total{job="docker01",mode="idle"}[5m]))*100)',0,4,"percent"),
  stat(6,"RAM Usage",'100*(1-(node_memory_MemAvailable_bytes{job="docker01"}/node_memory_MemTotal_bytes{job="docker01"}))',6,4,"percent"),
  stat(7,"Storage Used",'100*(1-(node_filesystem_avail_bytes{job="docker01",mountpoint="/mnt/storage"}/node_filesystem_size_bytes{job="docker01",mountpoint="/mnt/storage"}))',12,4,"percent"),
