@@ -4,7 +4,7 @@ This is Phase 2 of the R515 observability/control-plane project.
 
 ## Components
 
-- Prometheus `v3.13.3` (current supported 3.13 LTS bugfix line at deployment time)
+- Prometheus `v3.13.3`
 - node_exporter `v1.12.1`
 - cAdvisor `v0.60.5`
 
@@ -40,17 +40,34 @@ Run on Debian/docker01 as root:
 sudo bash scripts/install-prometheus-base.sh
 ```
 
+The installer is intended to be safe to rerun after a partial deployment. It detects an already-running node_exporter service and continues rather than treating port `9100` as an unexpected conflict.
+
 The installer:
 
-1. verifies ports 9090 and 9100 are available;
-2. downloads node_exporter v1.12.1 and verifies its official SHA-256;
-3. installs node_exporter as `node-exporter.service`;
+1. checks required tools and relevant ports;
+2. downloads node_exporter v1.12.1 and verifies its SHA-256 when installation is needed;
+3. installs/enables `node-exporter.service`;
 4. enables the textfile collector at `/var/lib/node_exporter/textfile`;
 5. creates Prometheus + cAdvisor under `/srv/docker/monitoring/metrics`;
 6. pins Prometheus and cAdvisor versions;
 7. configures 15-second scraping and 15-day Prometheus retention;
 8. starts the stack;
 9. verifies all three scrape targets are `UP`.
+
+## September 11, 2026 partial-run note
+
+The first Phase 2 run successfully installed and started node_exporter, but the installer falsely reported that node_exporter was not ready. The readiness check piped the large `/metrics` response directly to `grep -q`; once `grep` found the requested metric it exited early, causing `curl` to report write error `23` / connection reset while node_exporter itself remained healthy and active.
+
+The server state from that run showed:
+
+```text
+node-exporter.service: active (running)
+listener: 192.168.10.135:9100
+```
+
+No Prometheus or cAdvisor deployment occurred after that false failure because the script exited before reaching the Compose stage.
+
+The installer was corrected to download the metrics response to a temporary file before checking it and to support resuming after an already-running node_exporter deployment.
 
 ## Endpoints
 
