@@ -17,12 +17,24 @@ import json, sys
 out=sys.argv[1]
 ds={"type":"prometheus","uid":"prometheus"}
 
-def stat(i,title,expr,x,y,unit="none",status=False):
+
+def stat(i,title,expr,x,y,unit="none",status=False,free_space=False):
     defaults={"unit":unit}
     if status:
         defaults.update({
             "mappings":[{"type":"value","options":{"0":{"text":"DOWN","color":"red"},"1":{"text":"UP","color":"green"}}}],
             "thresholds":{"mode":"absolute","steps":[{"color":"red","value":None},{"color":"green","value":1}]},
+            "color":{"mode":"thresholds"}
+        })
+    elif free_space:
+        # Free-space thresholds are intentionally reversed from utilization:
+        # red below 200 GiB, orange from 200-500 GiB, green above 500 GiB.
+        defaults.update({
+            "thresholds":{"mode":"absolute","steps":[
+                {"color":"red","value":None},
+                {"color":"orange","value":214748364800},
+                {"color":"green","value":536870912000}
+            ]},
             "color":{"mode":"thresholds"}
         })
     elif unit=="percent":
@@ -37,6 +49,7 @@ def stat(i,title,expr,x,y,unit="none",status=False):
         "options":{"colorMode":"background","graphMode":"none","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":False}},
         "targets":[{"datasource":ds,"expr":expr,"instant":True,"refId":"A"}]
     }
+
 
 def graph(i,title,queries,x,y,w=8,unit="short",maxv=None):
     defaults={"unit":unit}
@@ -60,7 +73,7 @@ panels=[
  stat(5,"CPU Usage",'100-(avg(rate(node_cpu_seconds_total{job="docker01",mode="idle"}[5m]))*100)',0,4,"percent"),
  stat(6,"RAM Usage",'100*(1-(node_memory_MemAvailable_bytes{job="docker01"}/node_memory_MemTotal_bytes{job="docker01"}))',6,4,"percent"),
  stat(7,"Storage Used",'100*(1-(node_filesystem_avail_bytes{job="docker01",mountpoint="/mnt/storage"}/node_filesystem_size_bytes{job="docker01",mountpoint="/mnt/storage"}))',12,4,"percent"),
- stat(8,"Storage Free",'node_filesystem_avail_bytes{job="docker01",mountpoint="/mnt/storage"}',18,4,"bytes"),
+ stat(8,"Storage Free",'node_filesystem_avail_bytes{job="docker01",mountpoint="/mnt/storage"}',18,4,"bytes",free_space=True),
  graph(9,"CPU Usage",[('100-(avg(rate(node_cpu_seconds_total{job="docker01",mode="idle"}[5m]))*100)',"CPU")],0,8,8,"percent",100),
  graph(10,"RAM Usage",[('100*(1-(node_memory_MemAvailable_bytes{job="docker01"}/node_memory_MemTotal_bytes{job="docker01"}))',"RAM")],8,8,8,"percent",100),
  graph(11,"Network Throughput",[
@@ -73,7 +86,7 @@ panels=[
 
 d={
  "id":None,"uid":"r515-control-plane","title":"R515 Control Plane","tags":["r515","homelab","observability"],
- "timezone":"browser","editable":True,"graphTooltip":1,"panels":panels,"refresh":"15s","schemaVersion":41,"version":1,
+ "timezone":"browser","editable":True,"graphTooltip":1,"panels":panels,"refresh":"15s","schemaVersion":41,"version":2,
  "time":{"from":"now-6h","to":"now"},"timepicker":{"refresh_intervals":["5s","15s","30s","1m","5m"]},
  "templating":{"list":[]},"annotations":{"list":[]},"links":[]
 }
