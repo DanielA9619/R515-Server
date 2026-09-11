@@ -62,7 +62,7 @@ Direct private endpoint:
 http://192.168.10.135:8082
 ```
 
-The Proxmox collector is also installed and working. The initial run completed successfully and published SMART results to the hub. The timer is enabled and runs every 30 minutes.
+The Proxmox collector is installed and working. The initial run completed successfully and published SMART results to the hub. The timer is enabled and runs every 30 minutes.
 
 The collector is a `Type=oneshot` service, so this is the expected state between collection runs:
 
@@ -77,18 +77,19 @@ The active scheduling component is:
 scrutiny-collector.timer
 ```
 
-The Scrutiny UI was visually validated on 2026-09-11 and lists all four physical drives under host ID `r515-proxmox`:
+The Scrutiny UI now lists all four physical R515 drives. All four currently report `Passed`.
+
+The 3 TB media/storage drive is visible as:
 
 ```text
-/dev/sda  SK hynix SC311 SATA 256GB       Passed   26 C   238.5 GiB
-/dev/sdb  Seagate ST330006CLAR3000        Passed   34 C   2.7 TiB
-/dev/sdc  Seagate ST9146853SS             Passed   34 C   136.7 GiB
-/dev/sdd  Seagate ST9146853SS             Passed   32 C   136.7 GiB
+/dev/sdb
+SEAGATE ST330006CLAR3000
+capacity: 2.7 TiB
+status: Passed
+temperature during first UI validation: 34 C
 ```
 
-The 3 TB bulk/media disk `/dev/sdb` therefore has real SMART data visible in Scrutiny and currently reports `Passed` at 34 C.
-
-During the first collection, `/dev/sdd` returned smartctl exit code `4` with a checksum warning. Scrutiny still published that device's results and the UI currently reports the drive as `Passed`. Keep the checksum warning documented and watch future collections rather than treating it as an immediate failure.
+During the first collection, `/dev/sdd` returned smartctl exit code `4` with a checksum warning. Scrutiny still published that device's results and the overall collection completed successfully. The UI subsequently displayed `/dev/sdd` as `Passed`, so the warning should be monitored rather than treated as an immediate failure.
 
 ## docker01 hub
 
@@ -154,26 +155,38 @@ Collector API endpoint:
 http://192.168.10.135:8082
 ```
 
-## Planned private domain
+## Private domain
 
-After direct UI/device validation, add:
+The clean private Caddy route is installed and validated:
 
 ```text
 https://scrutiny.r515.allenfamhouse.com
 ```
 
-The Caddy site must use `private_only` and `tls internal`. The raw `8082` endpoint remains a LAN troubleshooting path and is not WAN-forwarded.
+Caddy configuration:
+
+```caddyfile
+scrutiny.r515.allenfamhouse.com {
+    import private_only
+    tls internal
+    reverse_proxy 192.168.10.135:8082
+}
+```
+
+The route was validated before deployment, applied in-place to preserve the single-file bind mount, host/container Caddyfile hashes matched, and the live `/api/health` check returned HTTP 200 after the SIGUSR1 reload.
+
+The raw `8082` endpoint remains a LAN troubleshooting path and is not WAN-forwarded.
 
 ## Validation
 
-Phase 1 is complete only when:
+Phase 1 status:
 
 1. Scrutiny web and InfluxDB are healthy. **PASS**
 2. The Proxmox collector service succeeds. **PASS**
 3. The UI lists the physical R515 disks. **PASS**
 4. The 3 TB Seagate SAS disk appears with real SMART data. **PASS**
-5. Historical data starts accumulating. **Collector timer enabled; verify after additional runs**
-6. The clean private Caddy URL works. **Pending**
+5. Historical data starts accumulating. **Collector timer enabled; verify over normal runtime**
+6. The clean private Caddy URL works. **PASS**
 7. Uptime Kuma has a Scrutiny monitor. **Pending**
 
 ## Script convention
