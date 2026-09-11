@@ -32,13 +32,13 @@ Direct LAN troubleshooting URL:
 http://192.168.10.135:3003
 ```
 
-Planned clean private URL:
+Clean private URL:
 
 ```text
 https://grafana.r515.allenfamhouse.com
 ```
 
-The clean URL must remain LAN / UniFi Teleport only and use the normal Caddy `private_only` gate with internal TLS.
+The clean URL is LAN / UniFi Teleport only and uses the normal Caddy `private_only` gate with internal TLS.
 
 ## Current deployment status
 
@@ -52,13 +52,15 @@ direct port                192.168.10.135:3003
 /api/health                healthy
 Grafana database           ok
 Prometheus datasource      provisioned successfully
+clean private URL          working, HTTP 200
 anonymous access           disabled
 user signup                disabled
+R515 Control Plane V1      provisioned
 ```
 
 Prometheus is provisioned automatically as the default datasource.
 
-The generated initial admin credential is stored locally in:
+The generated admin credential is stored locally in:
 
 ```text
 /srv/docker/monitoring/grafana/.env
@@ -66,7 +68,7 @@ The generated initial admin credential is stored locally in:
 
 Do not commit this file or its password.
 
-If an admin password is ever exposed in terminal logs, chat, screenshots, or other records, rotate it using:
+The initially printed password was rotated after deployment. The rotation helper is:
 
 ```text
 scripts/rotate-grafana-admin-password.sh
@@ -111,37 +113,47 @@ URL:  http://192.168.10.135:9090
 
 This avoids manual data-source setup and keeps the monitoring stack reproducible.
 
-## Dashboard storage
+## R515 Control Plane V1
 
-Provisioned dashboard files will live under:
+Installer:
 
 ```text
-/srv/docker/monitoring/grafana/dashboards
+scripts/install-r515-control-plane-dashboard.sh
 ```
 
-The first custom dashboard will be an R515-specific control plane rather than only an imported generic dashboard.
+Provisioned dashboard file:
 
-Initial sections planned:
+```text
+/srv/docker/monitoring/grafana/dashboards/r515-control-plane.json
+```
 
-- top-level health/status row;
-- docker01 CPU, RAM, load and network;
-- `/` and `/mnt/storage` capacity;
-- Docker container CPU/memory/network;
-- media-stack health;
-- recovery-service state;
-- backup age;
-- SMART/disk health integration;
-- later Proxmox host/VM metrics.
+Dashboard URL:
+
+```text
+https://grafana.r515.allenfamhouse.com/d/r515-control-plane/r515-control-plane
+```
+
+V1 currently contains:
+
+- Prometheus status;
+- node_exporter status;
+- cAdvisor status;
+- `/mnt/storage` mount presence;
+- CPU usage;
+- RAM usage;
+- storage used percentage;
+- storage free bytes;
+- CPU history;
+- RAM history;
+- host network RX/TX;
+- top Docker containers by CPU;
+- top Docker containers by memory.
+
+The next dashboard expansion will add R515-specific custom metrics for storage writability, Gluetun, Byparr real health, recovery-service results, and backup age. SMART/Proxmox data will be integrated after the relevant exporters/metrics are wired into Prometheus.
 
 ## Caddy
 
-After direct Grafana validation, run:
-
-```text
-scripts/add-grafana-caddy-route.sh
-```
-
-The route is:
+The active private route is:
 
 ```caddyfile
 grafana.r515.allenfamhouse.com {
@@ -151,17 +163,25 @@ grafana.r515.allenfamhouse.com {
 }
 ```
 
-The route installer follows the safe R515 Caddy workflow: backup, candidate validation, in-place overwrite to preserve the bind-mounted inode, host/container hash comparison, and `SIGUSR1` reload.
+The route installer is:
+
+```text
+scripts/add-grafana-caddy-route.sh
+```
+
+It follows the safe R515 Caddy workflow: backup, candidate validation, in-place overwrite to preserve the bind-mounted inode, host/container hash comparison, and `SIGUSR1` reload.
+
+The route was validated with HTTP 200 through the clean hostname.
 
 ## Uptime Kuma
 
-After the clean route is validated, add an HTTP monitor for the direct application health endpoint:
+Grafana application health endpoint:
 
 ```text
 http://192.168.10.135:3003/api/health
 ```
 
-This checks Grafana itself rather than Caddy.
+This checks Grafana itself rather than Caddy. Uptime Kuma remains the simple availability layer while Prometheus/Grafana handles metrics and deeper health.
 
 ## Security
 
@@ -169,5 +189,6 @@ This checks Grafana itself rather than Caddy.
 - no anonymous access;
 - public user signup disabled;
 - generated admin password stored locally in a mode-0600 `.env` file;
+- exposed initial admin password was rotated after deployment;
 - private clean URL protected by Caddy `private_only`;
 - secrets stay out of GitHub.
