@@ -28,11 +28,11 @@ command -v curl >/dev/null || { echo "ERROR: curl missing"; exit 1; }
 command -v python3 >/dev/null || { echo "ERROR: python3 missing"; exit 1; }
 [ -f "$PROM_CONFIG" ] || { echo "ERROR: missing $PROM_CONFIG"; exit 1; }
 
-curl -kfsS --max-time 5 "https://${PVE_IP}:8006/api2/json/version" >/dev/null || {
-  echo "ERROR: cannot reach the Proxmox API at ${PVE_IP}:8006."
+curl -ksS --connect-timeout 5 --max-time 8 -o /dev/null "https://${PVE_IP}:8006/" || {
+  echo "ERROR: cannot reach Proxmox at ${PVE_IP}:8006."
   exit 1
 }
-echo "PASS: Proxmox API reachable."
+echo "PASS: Proxmox web/API endpoint reachable."
 
 mkdir -p "$EXPORTER_DIR"
 
@@ -130,7 +130,7 @@ path = Path(sys.argv[1])
 text = path.read_text()
 
 if re.search(r"(?m)^\s*-\s*job_name:\s*['\"]?proxmox['\"]?\s*$", text):
-    print("INFO: Prometheus proximoх job already exists; leaving config unchanged.")
+    print("INFO: Prometheus Proxmox job already exists; leaving config unchanged.")
     raise SystemExit(0)
 
 lines = text.splitlines(keepends=True)
@@ -187,12 +187,13 @@ import time
 import urllib.request
 
 url = 'http://${HOST_IP}:9090/api/v1/targets'
+matches = []
 for _ in range(12):
     with urllib.request.urlopen(url, timeout=5) as r:
         data = json.load(r)
     matches = [t for t in data.get('data', {}).get('activeTargets', []) if t.get('labels', {}).get('job') == 'proxmox']
     if matches and matches[0].get('health') == 'up':
-        print('PASS: Prometheus target proximoх is UP.')
+        print('PASS: Prometheus target proxmox is UP.')
         print('Target:', matches[0].get('scrapeUrl', '?'))
         break
     time.sleep(5)
