@@ -14,8 +14,10 @@ prometheus-pve-exporter on docker01 (:9221)
         v
 Prometheus (:9090)
         |
+        +--> Grafana R515 Control Plane V4
+        |
         v
-R515 Control Plane Grafana dashboard
+Alertmanager -> ntfy.sh -> phone
 ```
 
 The exporter runs on `docker01`; nothing additional runs on the Proxmox host besides the dedicated read-only API identity.
@@ -75,6 +77,7 @@ Setup scripts:
 ```text
 scripts/setup-proxmox-monitoring-token.sh
 scripts/install-proxmox-exporter.sh
+scripts/add-proxmox-alerts.sh
 ```
 
 ## TLS
@@ -177,6 +180,48 @@ The Proxmox section adds:
 
 A pre-V4 dashboard backup was created before the live update.
 
-## Next work
+## Proxmox alerting
 
-Before alert rules are expanded, visually validate the V4 Grafana section for sensible panel values, units, thresholds, and graph rendering. After validation, add Proxmox-specific alerts for exporter/node/guest state and selected capacity conditions.
+Proxmox-specific rules were added to the existing Prometheus rule file with:
+
+```text
+scripts/add-proxmox-alerts.sh
+```
+
+The post-change validation succeeded:
+
+```text
+Prometheus config        valid
+alert rule file          valid
+rules loaded             27 total
+Proxmox scrape down      0
+R515 node down           0
+Docker01 down            0
+HAOS down                0
+bulk unavailable         0
+local unavailable        0
+local-lvm unavailable    0
+bulk >85%                0
+local >85%               0
+local-lvm >85%           0
+```
+
+The Proxmox group covers:
+
+- exporter/API scrape failure;
+- R515 node reported down;
+- Docker01 VM reported down;
+- HAOS VM reported down;
+- `bulk`, `local`, and `local-lvm` unavailable;
+- warning when each storage target stays above 85% used;
+- critical when each storage target stays above 95% used.
+
+No real VM or storage outage was induced during validation.
+
+## Whole-host outage limitation
+
+Prometheus and Alertmanager run in Docker01 on the R515. Therefore, a complete host power loss, Proxmox crash, loss of the R515 network path, or hard stop of Docker01 can also stop the monitoring and notification stack.
+
+The internal node/VM alerts are still useful when Docker01 remains alive, but they cannot guarantee notification for a total R515 outage.
+
+The next resilience step is an outbound-only external dead-man heartbeat from the Proxmox host to a hosted monitoring service. If the R515 stops sending heartbeats, the hosted service can notify independently of the server.
