@@ -41,9 +41,10 @@ Validated state:
 Alertmanager              ready on 192.168.10.135:9093
 Prometheus discovery      working
 R515 alert rules          loaded
-manual test alert         accepted by Alertmanager
+manual test alert         delivered to phone
+Prometheus-generated test delivered to phone
 ntfy phone subscription   configured
-phone delivery            confirmed working
+end-to-end alerting        confirmed working
 ```
 
 Prometheus reports the active Alertmanager endpoint as:
@@ -52,7 +53,15 @@ Prometheus reports the active Alertmanager endpoint as:
 http://192.168.10.135:9093/api/v2/alerts
 ```
 
-The Alertmanager-to-ntfy-to-phone path has been validated end to end with a live notification. The remaining validation step is a temporary Prometheus-generated test rule so the complete `Prometheus -> Alertmanager -> ntfy -> phone` path is exercised without breaking a real service.
+The complete path has now been validated without intentionally breaking a real service:
+
+```text
+Prometheus rule -> Alertmanager -> ntfy.sh -> phone
+```
+
+A temporary Prometheus `vector(1)` test rule fired successfully, reached the phone, and was then removed/restored cleanly.
+
+Because `send_resolved: true` is enabled, test alerts may produce a second notification when they resolve. This is expected and is also useful for real incidents because the phone receives both failure and recovery notifications.
 
 ## Installer
 
