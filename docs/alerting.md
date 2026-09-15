@@ -21,7 +21,23 @@ R515 custom metrics + node_exporter + cAdvisor + Proxmox exporter
                     phone app
 ```
 
-The initial delivery path intentionally uses the hosted `ntfy.sh` service instead of exposing another self-hosted service to the public Internet. This keeps the R515 inbound attack surface unchanged while still allowing alerts to reach the phone when away from home.
+Whole-host outage detection is separate from the internal stack:
+
+```text
+R515 Proxmox host
+      |
+      | outbound heartbeat every 5 minutes
+      v
+Healthchecks.io
+      |
+      v
+hosted ntfy.sh topic
+      |
+      v
+phone app
+```
+
+The internal delivery path intentionally uses the hosted `ntfy.sh` service instead of exposing another self-hosted service to the public Internet. This keeps the R515 inbound attack surface unchanged while still allowing alerts to reach the phone when away from home.
 
 A later self-hosted ntfy deployment remains possible. For iOS instant notifications, self-hosted ntfy requires `upstream-base-url: https://ntfy.sh`, and the phone must still be able to reach the self-hosted server to fetch the real message contents.
 
@@ -30,6 +46,7 @@ A later self-hosted ntfy deployment remains possible. For iOS instant notificati
 - Alertmanager: `v0.34.0`
 - Prometheus: existing `v3.13.3`
 - ntfy delivery: hosted `https://ntfy.sh`
+- whole-host dead-man monitor: Healthchecks.io
 
 ## Current deployment status
 
@@ -46,6 +63,9 @@ Prometheus-generated test delivered to phone
 ntfy phone subscription   configured
 end-to-end alerting        confirmed working
 Proxmox alert group       loaded and healthy
+external host heartbeat   enabled on Proxmox r515
+Healthchecks DOWN alert   delivered to phone
+Healthchecks UP recovery  delivered to phone
 ```
 
 Prometheus reports the active Alertmanager endpoint as:
@@ -54,7 +74,7 @@ Prometheus reports the active Alertmanager endpoint as:
 http://192.168.10.135:9093/api/v2/alerts
 ```
 
-The complete path has been validated without intentionally breaking a real service:
+The internal path has been validated without intentionally breaking a real service:
 
 ```text
 Prometheus rule -> Alertmanager -> ntfy.sh -> phone
@@ -139,13 +159,75 @@ Added rules:
 
 No real VM or storage outage was induced during validation.
 
-### Internal-monitoring blind spot
+## Whole-host external heartbeat
 
-Prometheus and Alertmanager run inside VM 100 (`Docker01`) on the R515. Therefore, a complete R515 power loss, Proxmox host crash, network isolation, or hard stop of Docker01 can also stop the monitoring stack before it can send a notification.
+Prometheus and Alertmanager run inside VM 100 (`Docker01`) on the R515. Therefore, a complete R515 power loss, Proxmox host crash, network isolation, or hard stop of Docker01 can also stop the internal monitoring stack before it can send a notification.
 
 The internal `R515NodeReportedDown` and `Docker01VMReportedDown` rules are useful when the monitoring stack is still alive, but they are not sufficient for true whole-host outage detection.
 
-The next resilience step is an **external dead-man heartbeat**: the Proxmox host periodically pings an Internet-hosted monitoring service, which alerts when the heartbeat stops. This requires no inbound WAN port and remains independent of Docker01.
+This blind spot is covered by an external dead-man heartbeat from the Proxmox host itself.
+
+Healthchecks.io check:
+
+```text
+name:   R515 Proxmox Host
+period: 5 minutes
+grace:  5 minutes
+```
+
+Healthchecks.io publishes DOWN and UP notifications to the same private hosted ntfy topic used by Alertmanager. The Healthchecks ntfy integration test was delivered successfully to the phone before the heartbeat was enabled.
+
+Heartbeat setup script:
+
+```text
+scripts/setup-external-heartbeat.sh
+```
+
+The script is intentionally guarded so it must run on the Proxmox host rather than `docker01`.
+
+Live Proxmox files:
+
+```text
+/etc/r515-healthchecks.env
+/usr/local/sbin/r515-external-heartbeat.sh
+/etc/systemd/system/r515-external-heartbeat.service
+/etc/systemd/system/r515-external-heartbeat.timer
+```
+
+The Healthchecks ping URL is stored only in `/etc/r515-healthchecks.env` with mode `0600` and must be treated as a secret. The systemd timer sends a heartbeat every 5 minutes.
+
+An initial accidental install on `docker01` was detected because the shell prompt was `root@debian`; that timer was disabled and left inactive. The active heartbeat was then installed correctly on the Proxmox host, confirmed by:
+
+```text
+Host: r515
+Proxmox: pve-manager/9.2.4
+heartbeat timer: enabled + active
+```
+
+### External heartbeat failure test
+
+The Proxmox heartbeat timer was intentionally stopped while the server itself remained online. Healthchecks.io recorded the expected transitions:
+
+```text
+01:20  new -> up
+01:32  up -> down
+01:36  down -> up
+```
+
+The DOWN ntfy notification arrived approximately 7 minutes after the timer was stopped. This is consistent with the check evaluating from the time of the last successful ping, not strictly from the command that stopped the timer.
+
+The heartbeat was manually restored at approximately 01:36, causing an immediate successful ping and the `down -> up` recovery event. The normal Proxmox heartbeat timer was then confirmed `enabled` and `active`, with the next 5-minute heartbeat scheduled normally.
+
+A 15-minute transient safety-recovery timer had also been scheduled for the test, but the heartbeat was manually restored before that timer's scheduled firing time. Therefore the external outage-detection and recovery-notification path is validated, while the separate transient safety-timer mechanism was not itself exercised to completion.
+
+Validated whole-host alert path:
+
+```text
+missed Proxmox heartbeat -> Healthchecks.io DOWN -> ntfy -> phone
+restored heartbeat       -> Healthchecks.io UP   -> ntfy -> phone
+```
+
+This external path requires no inbound WAN port and remains independent of Docker01, Prometheus, Alertmanager, Grafana, and Uptime Kuma.
 
 ## Alertmanager routing
 
@@ -192,7 +274,7 @@ interval: 60 seconds
 retries:  2
 ```
 
-Kuma remains useful for checking the alerting service itself, but because Kuma is also hosted on Docker01 it does not solve the whole-R515 outage blind spot.
+Kuma remains useful for checking the alerting service itself, but because Kuma is also hosted on Docker01 it does not solve the whole-R515 outage blind spot. Healthchecks.io is the independent whole-host monitor.
 
 ## Security
 
@@ -200,5 +282,7 @@ Kuma remains useful for checking the alerting service itself, but because Kuma i
 - do not publish the random ntfy topic;
 - do not commit `/srv/docker/monitoring/alerting/ntfy-topic.txt`;
 - do not add a WAN forward for Alertmanager;
+- do not publish or commit the Healthchecks ping URL;
+- keep the Healthchecks URL root-only in `/etc/r515-healthchecks.env`;
 - the initial design deliberately avoids exposing a self-hosted ntfy endpoint publicly;
-- external heartbeat monitoring should be outbound-only and its unique ping URL should be treated as a secret.
+- whole-host heartbeat monitoring is outbound-only from Proxmox.
