@@ -6,6 +6,12 @@ if [ "${EUID:-$(id -u)}" -ne 0 ]; then
   exit 1
 fi
 
+command -v pveversion >/dev/null || {
+  echo "ERROR: this script must run on the Proxmox host, not docker01."
+  echo "Expected Proxmox tools such as pveversion to be present."
+  exit 1
+}
+
 command -v curl >/dev/null || {
   echo "ERROR: curl is required."
   exit 1
@@ -17,6 +23,9 @@ SERVICE="/etc/systemd/system/r515-external-heartbeat.service"
 TIMER="/etc/systemd/system/r515-external-heartbeat.timer"
 
 printf '\n=== R515 EXTERNAL DEAD-MAN HEARTBEAT ===\n\n'
+
+echo "Host: $(hostname)"
+echo "Proxmox: $(pveversion | head -n 1)"
 
 if [ -s "$ENV_FILE" ]; then
   echo "INFO: existing heartbeat URL retained from $ENV_FILE"
