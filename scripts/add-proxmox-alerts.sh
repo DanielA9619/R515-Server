@@ -45,6 +45,9 @@ checks={
   'R515 node':'pve_up{id="node/r515"}',
   'Docker01':'pve_up{id="qemu/100"}',
   'HAOS':'pve_up{id="qemu/101"}',
+  'bulk status':'pve_up{id="storage/r515/bulk"}',
+  'local status':'pve_up{id="storage/r515/local"}',
+  'local-lvm status':'pve_up{id="storage/r515/local-lvm"}',
   'bulk size':'pve_disk_size_bytes{id="storage/r515/bulk"}',
   'bulk used':'pve_disk_usage_bytes{id="storage/r515/bulk"}',
   'local size':'pve_disk_size_bytes{id="storage/r515/local"}',
@@ -115,14 +118,41 @@ else
           summary: Home Assistant VM is down
           description: Proxmox has reported VM 101 (haos) stopped for at least 5 minutes.
 
+      - alert: ProxmoxBulkStorageDown
+        expr: pve_up{id="storage/r515/bulk"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: Proxmox bulk storage is unavailable
+          description: Proxmox has reported storage/r515/bulk unavailable for at least 3 minutes.
+
+      - alert: ProxmoxLocalStorageDown
+        expr: pve_up{id="storage/r515/local"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: Proxmox local storage is unavailable
+          description: Proxmox has reported storage/r515/local unavailable for at least 3 minutes.
+
+      - alert: ProxmoxLocalLVMStorageDown
+        expr: pve_up{id="storage/r515/local-lvm"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: Proxmox local-lvm storage is unavailable
+          description: Proxmox has reported storage/r515/local-lvm unavailable for at least 3 minutes.
+
       - alert: ProxmoxBulkStorageHigh
-        expr: 100 * pve_disk_usage_bytes{id="storage/r515/bulk"} / pve_disk_size_bytes{id="storage/r515/bulk"} > 85
+        expr: (100 * pve_disk_usage_bytes{id="storage/r515/bulk"} / pve_disk_size_bytes{id="storage/r515/bulk"} > 85) and (100 * pve_disk_usage_bytes{id="storage/r515/bulk"} / pve_disk_size_bytes{id="storage/r515/bulk"} <= 95)
         for: 30m
         labels:
           severity: warning
         annotations:
           summary: Proxmox bulk storage is above 85 percent
-          description: Proxmox bulk storage utilization has remained above 85 percent for 30 minutes.
+          description: Proxmox bulk storage utilization has remained between 85 and 95 percent for 30 minutes.
 
       - alert: ProxmoxBulkStorageCritical
         expr: 100 * pve_disk_usage_bytes{id="storage/r515/bulk"} / pve_disk_size_bytes{id="storage/r515/bulk"} > 95
@@ -134,13 +164,13 @@ else
           description: Proxmox bulk storage utilization has remained above 95 percent for 15 minutes.
 
       - alert: ProxmoxLocalStorageHigh
-        expr: 100 * pve_disk_usage_bytes{id="storage/r515/local"} / pve_disk_size_bytes{id="storage/r515/local"} > 85
+        expr: (100 * pve_disk_usage_bytes{id="storage/r515/local"} / pve_disk_size_bytes{id="storage/r515/local"} > 85) and (100 * pve_disk_usage_bytes{id="storage/r515/local"} / pve_disk_size_bytes{id="storage/r515/local"} <= 95)
         for: 30m
         labels:
           severity: warning
         annotations:
           summary: Proxmox local storage is above 85 percent
-          description: Proxmox local storage utilization has remained above 85 percent for 30 minutes.
+          description: Proxmox local storage utilization has remained between 85 and 95 percent for 30 minutes.
 
       - alert: ProxmoxLocalStorageCritical
         expr: 100 * pve_disk_usage_bytes{id="storage/r515/local"} / pve_disk_size_bytes{id="storage/r515/local"} > 95
@@ -152,13 +182,13 @@ else
           description: Proxmox local storage utilization has remained above 95 percent for 15 minutes.
 
       - alert: ProxmoxLocalLVMStorageHigh
-        expr: 100 * pve_disk_usage_bytes{id="storage/r515/local-lvm"} / pve_disk_size_bytes{id="storage/r515/local-lvm"} > 85
+        expr: (100 * pve_disk_usage_bytes{id="storage/r515/local-lvm"} / pve_disk_size_bytes{id="storage/r515/local-lvm"} > 85) and (100 * pve_disk_usage_bytes{id="storage/r515/local-lvm"} / pve_disk_size_bytes{id="storage/r515/local-lvm"} <= 95)
         for: 30m
         labels:
           severity: warning
         annotations:
           summary: Proxmox local-lvm storage is above 85 percent
-          description: Proxmox local-lvm storage utilization has remained above 85 percent for 30 minutes.
+          description: Proxmox local-lvm storage utilization has remained between 85 and 95 percent for 30 minutes.
 
       - alert: ProxmoxLocalLVMStorageCritical
         expr: 100 * pve_disk_usage_bytes{id="storage/r515/local-lvm"} / pve_disk_size_bytes{id="storage/r515/local-lvm"} > 95
@@ -199,6 +229,9 @@ for alert in \
   R515NodeReportedDown \
   Docker01VMReportedDown \
   HomeAssistantVMDown \
+  ProxmoxBulkStorageDown \
+  ProxmoxLocalStorageDown \
+  ProxmoxLocalLVMStorageDown \
   ProxmoxBulkStorageHigh \
   ProxmoxBulkStorageCritical \
   ProxmoxLocalStorageHigh \
@@ -226,6 +259,9 @@ queries={
   'R515 node down':'pve_up{id="node/r515"} == bool 0',
   'Docker01 down':'pve_up{id="qemu/100"} == bool 0',
   'HAOS down':'pve_up{id="qemu/101"} == bool 0',
+  'bulk unavailable':'pve_up{id="storage/r515/bulk"} == bool 0',
+  'local unavailable':'pve_up{id="storage/r515/local"} == bool 0',
+  'local-lvm unavailable':'pve_up{id="storage/r515/local-lvm"} == bool 0',
   'bulk >85%':'100*pve_disk_usage_bytes{id="storage/r515/bulk"}/pve_disk_size_bytes{id="storage/r515/bulk"} > bool 85',
   'local >85%':'100*pve_disk_usage_bytes{id="storage/r515/local"}/pve_disk_size_bytes{id="storage/r515/local"} > bool 85',
   'local-lvm >85%':'100*pve_disk_usage_bytes{id="storage/r515/local-lvm"}/pve_disk_size_bytes{id="storage/r515/local-lvm"} > bool 85',
