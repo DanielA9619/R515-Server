@@ -12,13 +12,38 @@ curl -fsS "$GRAFANA_URL/api/health" >/dev/null
 curl -fsS "$PROM_URL/-/ready" >/dev/null
 mkdir -p "$(dirname "$DASH_FILE")"
 
+python3 - <<'PY'
+import json, urllib.parse, urllib.request
+metrics = [
+    'r515_metrics_collector_success',
+    'r515_metrics_generated_unixtime',
+    'r515_storage_writable',
+    'r515_gluetun_healthy',
+    'r515_byparr_health',
+    'r515_postboot_recovery_success',
+    'r515_byparr_recovery_success',
+    'r515_config_backup_present',
+    'r515_config_backup_age_seconds',
+]
+missing=[]
+for metric in metrics:
+    url='http://192.168.10.135:9090/api/v1/query?' + urllib.parse.urlencode({'query': metric})
+    with urllib.request.urlopen(url, timeout=5) as r:
+        data=json.load(r)
+    if not data.get('data',{}).get('result',[]):
+        missing.append(metric)
+if missing:
+    raise SystemExit('Missing required custom metrics: ' + ', '.join(missing))
+print('PASS: custom R515 metrics are available.')
+PY
+
 python3 - "$DASH_FILE" <<'PY'
 import json, sys
 out=sys.argv[1]
 ds={"type":"prometheus","uid":"prometheus"}
 
 
-def stat(i,title,expr,x,y,unit="none",status=False,free_space=False):
+def stat(i,title,expr,x,y,unit="none",status=False,free_space=False,w=6,age=False):
     defaults={"unit":unit}
     if status:
         defaults.update({
@@ -27,8 +52,6 @@ def stat(i,title,expr,x,y,unit="none",status=False,free_space=False):
             "color":{"mode":"thresholds"}
         })
     elif free_space:
-        # Free-space thresholds are intentionally reversed from utilization:
-        # red below 200 GiB, orange from 200-500 GiB, green above 500 GiB.
         defaults.update({
             "thresholds":{"mode":"absolute","steps":[
                 {"color":"red","value":None},
@@ -37,6 +60,16 @@ def stat(i,title,expr,x,y,unit="none",status=False,free_space=False):
             ]},
             "color":{"mode":"thresholds"}
         })
+    elif age:
+        defaults.update({
+            "thresholds":{"mode":"absolute","steps":[
+                {"color":"green","value":None},
+                {"color":"orange","value":604800},
+                {"color":"red","value":1209600}
+            ]},
+            "color":{"mode":"thresholds"},
+            "decimals":1
+        })
     elif unit=="percent":
         defaults.update({
             "thresholds":{"mode":"absolute","steps":[{"color":"green","value":None},{"color":"orange","value":75},{"color":"red","value":90}]},
@@ -44,7 +77,7 @@ def stat(i,title,expr,x,y,unit="none",status=False,free_space=False):
         })
     return {
         "id":i,"type":"stat","title":title,"datasource":ds,
-        "gridPos":{"h":4,"w":6,"x":x,"y":y},
+        "gridPos":{"h":4,"w":w,"x":x,"y":y},
         "fieldConfig":{"defaults":defaults,"overrides":[]},
         "options":{"colorMode":"background","graphMode":"none","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":False}},
         "targets":[{"datasource":ds,"expr":expr,"instant":True,"refId":"A"}]
@@ -81,12 +114,23 @@ panels=[
    ('sum(rate(node_network_transmit_bytes_total{job="docker01",device!~"lo|veth.*|br-.*|docker.*"}[5m]))',"TX")
  ],16,8,8,"Bps"),
  graph(12,"Top Containers - CPU (% host)",[('topk(10,100*sum by(name)(rate(container_cpu_usage_seconds_total{job="cadvisor",image!="",name!=""}[5m]))/scalar(max(machine_cpu_cores{job="cadvisor"})))',"{{name}}")],0,16,12,"percent",100),
- graph(13,"Top Containers - Memory",[('topk(10,sum by(name)(container_memory_working_set_bytes{job="cadvisor",image!="",name!=""}))',"{{name}}")],12,16,12,"bytes")
+ graph(13,"Top Containers - Memory",[('topk(10,sum by(name)(container_memory_working_set_bytes{job="cadvisor",image!="",name!=""}))',"{{name}}")],12,16,12,"bytes"),
+
+ stat(20,"Storage Writable",'r515_storage_writable',0,24,status=True,w=4),
+ stat(21,"Gluetun VPN",'r515_gluetun_healthy',4,24,status=True,w=4),
+ stat(22,"Byparr Health",'r515_byparr_health',8,24,status=True,w=4),
+ stat(23,"Post-Boot Recovery",'r515_postboot_recovery_success',12,24,status=True,w=4),
+ stat(24,"Byparr Recovery",'r515_byparr_recovery_success',16,24,status=True,w=4),
+ stat(25,"Backup Available",'r515_config_backup_present',20,24,status=True,w=4),
+
+ stat(26,"Custom Collector",'r515_metrics_collector_success',0,28,status=True,w=8),
+ stat(27,"Metrics Fresh",'(time()-r515_metrics_generated_unixtime) < bool 180',8,28,status=True,w=8),
+ stat(28,"Latest Backup Age",'r515_config_backup_age_seconds',16,28,"s",w=8,age=True)
 ]
 
 d={
  "id":None,"uid":"r515-control-plane","title":"R515 Control Plane","tags":["r515","homelab","observability"],
- "timezone":"browser","editable":True,"graphTooltip":1,"panels":panels,"refresh":"15s","schemaVersion":41,"version":2,
+ "timezone":"browser","editable":True,"graphTooltip":1,"panels":panels,"refresh":"15s","schemaVersion":41,"version":3,
  "time":{"from":"now-6h","to":"now"},"timepicker":{"refresh_intervals":["5s","15s","30s","1m","5m"]},
  "templating":{"list":[]},"annotations":{"list":[]},"links":[]
 }
