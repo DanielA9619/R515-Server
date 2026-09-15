@@ -18,29 +18,39 @@ Prometheus (:9090)
 R515 Control Plane Grafana dashboard
 ```
 
-The exporter runs on `docker01`; nothing additional needs to run on the Proxmox host besides a dedicated read-only API identity.
+The exporter runs on `docker01`; nothing additional runs on the Proxmox host besides the dedicated read-only API identity.
 
 ## Exporter
 
 Project: `prometheus-pve/prometheus-pve-exporter`
 
-Initial deployment target: `v3.9.0` / Docker image `prompve/prometheus-pve-exporter:3.9.0`.
-
-The exporter supports Proxmox API token authentication through:
+Deployed image:
 
 ```text
-PVE_USER
-PVE_TOKEN_NAME
-PVE_TOKEN_VALUE
-PVE_VERIFY_SSL
-PVE_MODULE
+prompve/prometheus-pve-exporter:3.9.0
 ```
 
-The R515 deployment binds the exporter only to the docker01 LAN address on TCP `9221` and explicitly listens on IPv4 `0.0.0.0:9221` inside the container.
+Exporter endpoint:
+
+```text
+http://192.168.10.135:9221
+```
+
+Prometheus job:
+
+```text
+proxmox
+```
+
+The Prometheus target is validated `UP` and currently scrapes:
+
+```text
+http://192.168.10.135:9221/pve?cluster=1&module=default&node=1&target=192.168.10.50
+```
 
 ## Security model
 
-Use a dedicated PVE-realm identity:
+Dedicated PVE identity:
 
 ```text
 user:       prometheus@pve
@@ -50,84 +60,103 @@ scope:      /
 privsep:    enabled
 ```
 
-Both the backing user and the privilege-separated token receive only `PVEAuditor`. The token therefore cannot administer VMs, storage, networking, users, or the node.
+Both the backing user and privilege-separated token have only `PVEAuditor` access.
 
-The token secret is shown only at creation time. It is stored only on `docker01` in:
+The token secret is stored only on `docker01` in:
 
 ```text
 /srv/docker/monitoring/proxmox-exporter/.env
 ```
 
-with mode `0600`, and must never be committed to GitHub.
+with mode `0600`. It must never be committed to GitHub or pasted into documentation/logs.
 
-The read-only user/token creation step has been completed successfully on the R515 Proxmox host.
-
-Create/recreate the user/token on the Proxmox host with:
+Setup scripts:
 
 ```text
 scripts/setup-proxmox-monitoring-token.sh
-```
-
-Deploy the exporter and Prometheus scrape job on docker01 with:
-
-```text
 scripts/install-proxmox-exporter.sh
 ```
 
-The installer prompts interactively for the token value with hidden input on first run; it never prints the secret.
-
 ## TLS
 
-The exporter connection targets the Proxmox LAN IP `192.168.10.50`. Because the default Proxmox certificate is locally signed and the exporter container does not yet trust the R515 Proxmox CA, the initial deployment uses:
+The exporter connects to `192.168.10.50:8006` with:
 
 ```text
 PVE_VERIFY_SSL=false
 ```
 
-on this private LAN connection.
+because the default Proxmox certificate is locally signed and the exporter container does not yet trust the R515 Proxmox CA. A later hardening step can import the Proxmox CA and enable verification.
 
-A later hardening step can mount/import `/etc/pve/pve-root-ca.pem` into the exporter and enable certificate verification.
+## Validated live resources
 
-## Prometheus scrape design
-
-The exporter runs on docker01 at:
+The exporter authenticated successfully and exposed these `pve_up` resources:
 
 ```text
-192.168.10.135:9221
+node/r515
+qemu/100
+qemu/101
+storage/r515/local-lvm
+storage/r515/local
+storage/r515/bulk
 ```
 
-Prometheus uses the exporter as a proxy for the Proxmox target `192.168.10.50` with `/pve`, module `default`, cluster metrics enabled, and node metrics enabled.
-
-The initial scrape interval is 30 seconds to keep API load light on this single-node homelab.
-
-## Planned Prometheus/Grafana data
-
-After live exporter validation, the R515 dashboard will add:
-
-- Proxmox node up/down state;
-- host CPU usage;
-- host RAM usage;
-- host uptime;
-- Proxmox storage capacity/usage;
-- VM 100 (`Docker01`) status and resource usage;
-- VM 101 (`haos`) status and resource usage;
-- guest CPU/RAM/network/disk metrics exposed by the Proxmox API;
-- alerts for exporter/Proxmox scrape failure and important VM state changes where appropriate.
-
-Expected core exporter metrics include:
+Guest identity is confirmed through `pve_guest_info`:
 
 ```text
-pve_up
-pve_cpu_usage_ratio
-pve_cpu_usage_limit
-pve_memory_size_bytes
-pve_memory_usage_bytes
-pve_uptime_seconds
-pve_disk_size_bytes
-pve_disk_usage_bytes
-pve_network_receive_bytes_total
-pve_network_transmit_bytes_total
-pve_guest_info
+qemu/100  name=Docker01  node=r515  type=qemu
+qemu/101  name=haos      node=r515  type=qemu
 ```
 
-Metric names, labels, and actual node/guest IDs will still be verified against the live R515 exporter before Grafana queries are committed.
+All six `pve_up` resources were `1` during validation.
+
+## Validated live metrics
+
+Confirmed metrics and labels include:
+
+```text
+pve_up{id="node/r515"}
+pve_up{id="qemu/100"}
+pve_up{id="qemu/101"}
+pve_guest_info{id="qemu/100",name="Docker01",node="r515",type="qemu"}
+pve_guest_info{id="qemu/101",name="haos",node="r515",type="qemu"}
+pve_cpu_usage_ratio{id="node/r515"}
+pve_cpu_usage_ratio{id="qemu/100"}
+pve_cpu_usage_ratio{id="qemu/101"}
+pve_memory_usage_bytes{id="node/r515"}
+pve_memory_usage_bytes{id="qemu/100"}
+pve_memory_usage_bytes{id="qemu/101"}
+pve_uptime_seconds{id="node/r515"}
+pve_uptime_seconds{id="qemu/100"}
+pve_uptime_seconds{id="qemu/101"}
+```
+
+Observed validation values included approximately:
+
+```text
+R515 CPU ratio       0.152
+Docker01 CPU ratio   0.595
+HAOS CPU ratio       0.016
+R515 RAM used        15.8 GB
+Docker01 RAM used     7.6 GB
+HAOS RAM used         4.0 GB
+```
+
+These are point-in-time observations only, not expected steady-state values.
+
+## Next dashboard work
+
+Before committing the final Grafana Proxmox queries, the remaining exporter series will be live-discovered for:
+
+- total host/guest memory;
+- Proxmox storage size/usage;
+- guest/network counters;
+- any additional node-level metrics useful for the R515 control plane.
+
+The next dashboard revision will then add:
+
+- Proxmox exporter status;
+- R515 node status, CPU, RAM, and uptime;
+- VM 100 (`Docker01`) status, CPU, RAM, and uptime;
+- VM 101 (`haos`) status, CPU, RAM, and uptime;
+- `local`, `local-lvm`, and `bulk` storage status/capacity where exposed;
+- appropriate Proxmox/VM alert rules after dashboard validation.
