@@ -42,7 +42,8 @@ Alertmanager              ready on 192.168.10.135:9093
 Prometheus discovery      working
 R515 alert rules          loaded
 manual test alert         accepted by Alertmanager
-ntfy topic                generated and stored locally
+ntfy phone subscription   configured
+phone delivery            confirmed working
 ```
 
 Prometheus reports the active Alertmanager endpoint as:
@@ -51,7 +52,7 @@ Prometheus reports the active Alertmanager endpoint as:
 http://192.168.10.135:9093/api/v2/alerts
 ```
 
-The remaining end-to-end validation step is subscribing the phone to the private ntfy topic and confirming a fresh test alert is delivered.
+The Alertmanager-to-ntfy-to-phone path has been validated end to end with a live notification. The remaining validation step is a temporary Prometheus-generated test rule so the complete `Prometheus -> Alertmanager -> ntfy -> phone` path is exercised without breaking a real service.
 
 ## Installer
 
