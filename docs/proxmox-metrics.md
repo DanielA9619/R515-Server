@@ -122,41 +122,61 @@ pve_guest_info{id="qemu/101",name="haos",node="r515",type="qemu"}
 pve_cpu_usage_ratio{id="node/r515"}
 pve_cpu_usage_ratio{id="qemu/100"}
 pve_cpu_usage_ratio{id="qemu/101"}
-pve_memory_usage_bytes{id="node/r515"}
-pve_memory_usage_bytes{id="qemu/100"}
-pve_memory_usage_bytes{id="qemu/101"}
-pve_uptime_seconds{id="node/r515"}
-pve_uptime_seconds{id="qemu/100"}
-pve_uptime_seconds{id="qemu/101"}
+pve_memory_size_bytes
+pve_memory_usage_bytes
+pve_disk_size_bytes
+pve_disk_usage_bytes
+pve_network_receive_bytes_total
+pve_network_transmit_bytes_total
+pve_uptime_seconds
 ```
 
-Observed validation values included approximately:
+Validated capacities during the V4 dashboard preflight:
 
 ```text
-R515 CPU ratio       0.152
-Docker01 CPU ratio   0.595
-HAOS CPU ratio       0.016
-R515 RAM used        15.8 GB
-Docker01 RAM used     7.6 GB
-HAOS RAM used         4.0 GB
+R515 RAM total          67422552064 bytes
+Docker01 RAM total       8589934592 bytes
+HAOS RAM total           4294967296 bytes
+bulk size             2952325091328 bytes
+bulk used             1329746870272 bytes
+local size               72594137088 bytes
+local used                8466837504 bytes
+local-lvm size           151259185152 bytes
+local-lvm used            70305269258 bytes
 ```
 
-These are point-in-time observations only, not expected steady-state values.
+These are point-in-time observations and should not be treated as fixed utilization values.
 
-## Next dashboard work
+## Grafana Control Plane V4
 
-Before committing the final Grafana Proxmox queries, the remaining exporter series will be live-discovered for:
+Control Plane V4 was successfully provisioned from:
 
-- total host/guest memory;
-- Proxmox storage size/usage;
-- guest/network counters;
-- any additional node-level metrics useful for the R515 control plane.
+```text
+/srv/docker/monitoring/grafana/dashboards/r515-control-plane.json
+```
 
-The next dashboard revision will then add:
+Dashboard URL:
 
-- Proxmox exporter status;
-- R515 node status, CPU, RAM, and uptime;
-- VM 100 (`Docker01`) status, CPU, RAM, and uptime;
-- VM 101 (`haos`) status, CPU, RAM, and uptime;
-- `local`, `local-lvm`, and `bulk` storage status/capacity where exposed;
-- appropriate Proxmox/VM alert rules after dashboard validation.
+```text
+https://grafana.r515.allenfamhouse.com/d/r515-control-plane/r515-control-plane
+```
+
+The Proxmox section adds:
+
+- Proxmox exporter scrape status;
+- R515 node status and uptime;
+- VM 100 (`Docker01`) status;
+- VM 101 (`haos`) status and uptime;
+- R515 host CPU/RAM;
+- Docker01 CPU/RAM;
+- HAOS CPU/RAM;
+- `bulk`, `local`, and `local-lvm` utilization;
+- host/guest CPU and RAM trend graphs;
+- Docker01 and HAOS network throughput;
+- Proxmox storage utilization history.
+
+A pre-V4 dashboard backup was created before the live update.
+
+## Next work
+
+Before alert rules are expanded, visually validate the V4 Grafana section for sensible panel values, units, thresholds, and graph rendering. After validation, add Proxmox-specific alerts for exporter/node/guest state and selected capacity conditions.
