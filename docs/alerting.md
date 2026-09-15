@@ -31,6 +31,28 @@ A later self-hosted ntfy deployment remains possible. For iOS instant notificati
 - Prometheus: existing `v3.13.3`
 - ntfy delivery: hosted `https://ntfy.sh`
 
+## Current deployment status
+
+Alertmanager is installed and running on `docker01`.
+
+Validated state:
+
+```text
+Alertmanager              ready on 192.168.10.135:9093
+Prometheus discovery      working
+R515 alert rules          loaded
+manual test alert         accepted by Alertmanager
+ntfy topic                generated and stored locally
+```
+
+Prometheus reports the active Alertmanager endpoint as:
+
+```text
+http://192.168.10.135:9093/api/v2/alerts
+```
+
+The remaining end-to-end validation step is subscribing the phone to the private ntfy topic and confirming a fresh test alert is delivered.
+
 ## Installer
 
 ```text
@@ -52,6 +74,16 @@ The installer:
 9. submits a short-lived test alert through Alertmanager.
 
 The ntfy topic is effectively a secret and must not be committed to GitHub or pasted into public logs.
+
+### First-install permission issue found during deployment
+
+The first live run exposed a shell-permission bug: `umask 077` was set while generating the topic and remained active for the rest of that shell. That caused the subsequently created `alertmanager.yml` to be mode `0600`, so the non-root `amtool` process inside the validation container could not read it and reported:
+
+```text
+open /etc/alertmanager/alertmanager.yml: permission denied
+```
+
+The live recovery was to set the Alertmanager config and Compose file to mode `0644`, validate with `amtool`, then rerun the installer. The second run completed successfully. Future installer revisions should scope the restrictive umask only to topic-file creation or explicitly set config-file modes before container validation.
 
 ## Alert rules
 
