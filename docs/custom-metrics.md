@@ -85,11 +85,62 @@ The collector finds the newest file matching:
 
 `r515_config_backup_present` reports whether one exists, while `r515_config_backup_age_seconds` reports its age in seconds. The age is `-1` if no matching backup exists.
 
-## Next use
+## Production validation
 
-These metrics are intended for two consumers:
+The first production validation completed successfully. Prometheus reported:
 
-1. the top health/status section of the `R515 Control Plane` Grafana dashboard;
-2. Alertmanager rules, later delivered through ntfy.
+```text
+r515_storage_mounted 1
+r515_storage_writable 1
+r515_gluetun_healthy 1
+r515_byparr_health 1
+r515_postboot_recovery_success 1
+r515_byparr_recovery_success 1
+r515_config_backup_present 1
+r515_config_backup_age_seconds 343411
+```
 
-Likely initial alert conditions include storage not mounted/writable, Gluetun unhealthy, Byparr unhealthy, recovery failure, missing backup, stale backup, and custom-metric collector staleness.
+At that checkpoint every binary health metric was healthy. The newest config backup was about four days old.
+
+The timer was enabled and scheduling the collector every 60 seconds.
+
+## Grafana integration
+
+The `R515 Control Plane` dashboard includes the following R515-specific panels:
+
+```text
+Storage Writable
+Gluetun VPN
+Byparr Health
+Post-Boot Recovery
+Byparr Recovery
+Backup Available
+Custom Collector
+Metrics Fresh
+Latest Backup Age
+```
+
+Current backup-age visualization policy:
+
+```text
+< 7 days      green
+7-14 days     orange
+> 14 days     red
+```
+
+`Metrics Fresh` is healthy only when the most recent custom-metric generation timestamp is less than three minutes old.
+
+## Next use: alerting
+
+These metrics will feed Alertmanager and ntfy so failures become push notifications rather than dashboard-only indicators.
+
+Initial alert candidates:
+
+- storage not mounted;
+- storage not writable;
+- Gluetun unhealthy;
+- Byparr real health failed;
+- either recovery service reports failure;
+- custom metrics become stale;
+- config backup missing;
+- config backup age exceeds policy.
