@@ -30,6 +30,23 @@ Do not forward Jellyfin `8096`, Quick Links `8070`, qBittorrent `8080`, Portaine
 
 UniFi Teleport is the preferred private remote-access path.
 
+## Planned Tailscale mesh
+
+Status: **planned; not installed yet**.
+
+Tailscale is planned as a second private management path alongside UniFi Teleport, not as a replacement for Mullvad and not as a replacement for the existing public Jellyfin path.
+
+Planned uses:
+
+- add the primary PC, phone, and an R515-side Tailscale endpoint to the same tailnet;
+- allow direct private peer-to-peer access between those devices when possible;
+- optionally advertise `192.168.10.0/24` from an R515-side subnet router so the PC/phone can reach LAN-only services such as Proxmox, Grafana, Portainer, Home Assistant, Radarr, Sonarr, and the other private R515 interfaces;
+- provide a backup private-access path if UniFi Teleport is unavailable.
+
+Jellyfin will remain on the current public Caddy path for now. qBittorrent will remain behind Gluetun/Mullvad. Tailscale will be kept separate from the qBittorrent VPN path.
+
+The exact R515-side placement (Proxmox host, `docker01`, or a dedicated lightweight guest) should be decided before deployment based on the desired failure independence and subnet-routing role.
+
 ## AdGuard DNS
 
 AdGuard Home runs on `docker01`:
@@ -357,6 +374,21 @@ Backups are stored under:
 A Windows pull workflow also copies server backups off the R515.
 
 A fresh backup checkpoint was completed after the private-domain and Home Assistant reverse-proxy work.
+
+## Pending media notifications
+
+Status: **planned; not installed yet**.
+
+The planned media-notification layer will use a separate ntfy topic from the critical R515 alert topic so routine media events do not bury infrastructure alerts.
+
+Planned sources:
+
+- Seerr request events;
+- Radarr grab/import/failure events;
+- Sonarr grab/import/failure events;
+- qBittorrent completion notifications only if they add useful information beyond Radarr/Sonarr import events.
+
+Notification formatting for the existing infrastructure alerts should also be cleaned up so phone notifications emphasize a short title and useful description rather than raw Alertmanager/Healthchecks metadata.
 
 ## Safety
 
