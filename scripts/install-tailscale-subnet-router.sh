@@ -49,12 +49,20 @@ command -v pveam >/dev/null || fail "pveam not found."
 command -v pvesm >/dev/null || fail "pvesm not found."
 command -v pvesh >/dev/null || fail "pvesh not found."
 command -v ip >/dev/null || fail "iproute2 tools not found on the host."
+command -v dpkg >/dev/null || fail "dpkg not found; cannot determine host architecture safely."
+
+HOST_ARCH="$(dpkg --print-architecture)"
+case "$HOST_ARCH" in
+  amd64|arm64|armhf|i386|riscv32|riscv64) ;;
+  *) fail "unsupported Proxmox host architecture: ${HOST_ARCH}" ;;
+esac
 
 HOSTNAME_NOW="$(hostname)"
-echo "Host:    ${HOSTNAME_NOW}"
-echo "Proxmox: $(pveversion | head -n 1)"
-echo "LAN:     ${LAN_CIDR}"
-echo "Bridge:  ${BRIDGE}"
+echo "Host:         ${HOSTNAME_NOW}"
+echo "Proxmox:      $(pveversion | head -n 1)"
+echo "Architecture: ${HOST_ARCH}"
+echo "LAN:          ${LAN_CIDR}"
+echo "Bridge:       ${BRIDGE}"
 
 [ -e /dev/net/tun ] || modprobe tun || true
 [ -c /dev/net/tun ] || fail "/dev/net/tun is not available on the Proxmox host."
@@ -85,7 +93,15 @@ EXISTING_CONF="$(grep -l "^hostname: ${TS_HOSTNAME}$" /etc/pve/lxc/*.conf 2>/dev
 
 if [ -n "$EXISTING_CONF" ]; then
   CTID="$(basename "$EXISTING_CONF" .conf)"
+  CT_ARCH="$(pct config "$CTID" | awk '$1 == "arch:" {print $2}')"
+  [ -n "$CT_ARCH" ] || CT_ARCH="amd64"
+
+  if [ "$CT_ARCH" != "$HOST_ARCH" ]; then
+    fail "existing ${TS_HOSTNAME} CT ${CTID} is ${CT_ARCH}, but the Proxmox host is ${HOST_ARCH}. Recreate the CT with a matching template before rerunning."
+  fi
+
   echo "INFO: existing ${TS_HOSTNAME} container found as CT ${CTID}; reusing it."
+  pass "existing CT architecture matches host (${HOST_ARCH})."
 else
   CTID="$(pvesh get /cluster/nextid)"
   [ -n "$CTID" ] || fail "could not obtain the next Proxmox CT ID."
@@ -95,12 +111,20 @@ else
   section "DOWNLOAD DEBIAN TEMPLATE"
   pveam update >/dev/null
 
-  TEMPLATE="$(pveam available --section system | awk '$2 ~ /^debian-13-standard_/ {print $2}' | sort -V | tail -n 1)"
+  TEMPLATE="$(pveam available --section system | awk -v arch="$HOST_ARCH" '$2 ~ /^debian-13-standard_/ && $2 ~ "_" arch "\\.tar\\.(zst|gz)$" {print $2}' | sort -V | tail -n 1)"
   if [ -z "$TEMPLATE" ]; then
-    warn "Debian 13 template not found; falling back to Debian 12."
-    TEMPLATE="$(pveam available --section system | awk '$2 ~ /^debian-12-standard_/ {print $2}' | sort -V | tail -n 1)"
+    warn "Debian 13 ${HOST_ARCH} template not found; falling back to Debian 12."
+    TEMPLATE="$(pveam available --section system | awk -v arch="$HOST_ARCH" '$2 ~ /^debian-12-standard_/ && $2 ~ "_" arch "\\.tar\\.(zst|gz)$" {print $2}' | sort -V | tail -n 1)"
   fi
-  [ -n "$TEMPLATE" ] || fail "no supported Debian standard LXC template was found."
+  [ -n "$TEMPLATE" ] || fail "no supported Debian ${HOST_ARCH} standard LXC template was found."
+
+  case "$TEMPLATE" in
+    *_"${HOST_ARCH}".tar.zst|*_"${HOST_ARCH}".tar.gz) ;;
+    *) fail "refusing architecture-mismatched template: ${TEMPLATE}" ;;
+  esac
+
+  echo "Selected template: ${TEMPLATE}"
+  pass "template architecture matches Proxmox host (${HOST_ARCH})."
 
   TEMPLATE_VOL="${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}"
   if pveam list "$TEMPLATE_STORAGE" | awk '{print $1}' | grep -qxF "$TEMPLATE_VOL"; then
@@ -114,6 +138,7 @@ else
   pct create "$CTID" "$TEMPLATE_VOL" \
     --hostname "$TS_HOSTNAME" \
     --ostype debian \
+    --arch "$HOST_ARCH" \
     --unprivileged 1 \
     --cores "$CORES" \
     --memory "$MEMORY_MB" \
@@ -125,7 +150,9 @@ else
     --onboot 1 \
     --startup "order=10,up=15,down=60"
 
-  pass "created unprivileged CT ${CTID}."
+  CREATED_ARCH="$(pct config "$CTID" | awk '$1 == "arch:" {print $2}')"
+  [ "$CREATED_ARCH" = "$HOST_ARCH" ] || fail "created CT architecture is ${CREATED_ARCH:-unknown}, expected ${HOST_ARCH}."
+  pass "created unprivileged CT ${CTID} with ${HOST_ARCH} architecture."
 fi
 
 section "CONFIGURE TUN + STARTUP"
@@ -141,7 +168,12 @@ if pct status "$CTID" | grep -q 'status: running'; then
     pct start "$CTID"
   fi
 else
-  pct start "$CTID"
+  if ! pct start "$CTID"; then
+    echo
+    echo "Container config for troubleshooting:"
+    pct config "$CTID" || true
+    fail "CT ${CTID} failed to start."
+  fi
 fi
 
 for _ in $(seq 1 60); do
@@ -172,7 +204,7 @@ pass "DHCP networking is up."
 
 section "INSTALL + CONFIGURE TAILSCALE"
 
-pct exec "$CTID" -- env TIMEZONE="$TIMEZONE" LAN_CIDR="$LAN_CIDR" bash -s <<'INNER'
+pct exec "$CTID" -- env TIMEZONE="$TIMEZONE" bash -s <<'INNER'
 set -Eeuo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
@@ -255,6 +287,7 @@ test_cmd() {
 }
 
 test_cmd "CT is running" bash -lc "pct status '$CTID' | grep -q 'status: running'"
+test_cmd "CT architecture matches host" bash -lc "test \"\$(pct config '$CTID' | awk '\$1 == \"arch:\" {print \$2}')\" = '$HOST_ARCH'"
 test_cmd "TUN is available in the CT" pct exec "$CTID" -- test -c /dev/net/tun
 test_cmd "tailscaled is active" pct exec "$CTID" -- systemctl is-active --quiet tailscaled
 test_cmd "Tailscale backend is Running" pct exec "$CTID" -- bash -lc "tailscale status --json | jq -e '.BackendState == \"Running\"'"
@@ -273,6 +306,7 @@ section "STATUS"
 
 echo "CT ID:          ${CTID}"
 echo "Hostname:       ${TS_HOSTNAME}"
+echo "Architecture:   ${HOST_ARCH}"
 echo "LAN IP:         ${CT_IP}"
 echo "LAN MAC:        ${MAC:-unknown}"
 echo "Tailscale IP:   ${TS_IP:-unknown}"
