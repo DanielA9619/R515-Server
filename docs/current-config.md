@@ -30,22 +30,27 @@ Do not forward Jellyfin `8096`, Quick Links `8070`, qBittorrent `8080`, Portaine
 
 UniFi Teleport is the preferred private remote-access path.
 
-## Planned Tailscale mesh
+## Tailscale mesh
 
-Status: **planned; not installed yet**.
+Status: **installed and end-to-end validated**.
 
-Tailscale is planned as a second private management path alongside UniFi Teleport, not as a replacement for Mullvad and not as a replacement for the existing public Jellyfin path.
+Tailscale is a second private management path alongside UniFi Teleport. It is not a replacement for Mullvad and does not replace the existing public Jellyfin path.
 
-Planned uses:
+Current design:
 
-- add the primary PC, phone, and an R515-side Tailscale endpoint to the same tailnet;
-- allow direct private peer-to-peer access between those devices when possible;
-- optionally advertise `192.168.10.0/24` from an R515-side subnet router so the PC/phone can reach LAN-only services such as Proxmox, Grafana, Portainer, Home Assistant, Radarr, Sonarr, and the other private R515 interfaces;
-- provide a backup private-access path if UniFi Teleport is unavailable.
+- dedicated unprivileged Debian LXC on Proxmox;
+- CT ID `102`, hostname `r515-tailscale`;
+- AMD64 architecture with `/dev/net/tun` passed through;
+- advertises subnet `192.168.10.0/24`;
+- exit-node mode disabled;
+- autostart enabled;
+- Windows PC and iPhone are joined to the same tailnet.
 
-Jellyfin will remain on the current public Caddy path for now. qBittorrent will remain behind Gluetun/Mullvad. Tailscale will be kept separate from the qBittorrent VPN path.
+Server-side checks passed, including gateway access, Proxmox access, and Docker01/Prometheus access. Client-side tests from both the PC and iPhone also passed, proving remote access through the subnet router.
 
-The exact R515-side placement (Proxmox host, `docker01`, or a dedicated lightweight guest) should be decided before deployment based on the desired failure independence and subnet-routing role.
+Jellyfin remains on the current public Caddy path. qBittorrent remains behind Gluetun/Mullvad and is intentionally separate from Tailscale.
+
+See [`tailscale.md`](tailscale.md) for the detailed configuration, validation results, and the ARM64-template installation issue that was corrected.
 
 ## AdGuard DNS
 
@@ -375,20 +380,31 @@ A Windows pull workflow also copies server backups off the R515.
 
 A fresh backup checkpoint was completed after the private-domain and Home Assistant reverse-proxy work.
 
-## Pending media notifications
+## Media notifications
 
-Status: **planned; not installed yet**.
+Status: **installed and tested**.
 
-The planned media-notification layer will use a separate ntfy topic from the critical R515 alert topic so routine media events do not bury infrastructure alerts.
+A separate hosted ntfy topic named **R515 Media** is used so routine media events do not bury infrastructure alerts. The underlying random topic string is treated as a secret and is stored locally at:
 
-Planned sources:
+```text
+/srv/docker/monitoring/media-notifications/ntfy-topic.txt
+```
 
-- Seerr request events;
-- Radarr grab/import/failure events;
-- Sonarr grab/import/failure events;
-- qBittorrent completion notifications only if they add useful information beyond Radarr/Sonarr import events.
+Configured and tested sources:
 
-Notification formatting for the existing infrastructure alerts should also be cleaned up so phone notifications emphasize a short title and useful description rather than raw Alertmanager/Healthchecks metadata.
+- Seerr;
+- Radarr;
+- Sonarr.
+
+All three built-in notification tests reached the phone successfully. qBittorrent notifications are intentionally left off for now because Radarr/Sonarr already cover the more useful grab and import lifecycle.
+
+Infrastructure Alertmanager notifications now pass through the local `notification-bridge` formatter on Docker01 before publishing to the existing R515 Alerts ntfy topic, producing shorter phone-friendly titles and descriptions. The bridge health endpoint is:
+
+```text
+http://192.168.10.135:8787/health
+```
+
+Healthchecks.io remains external and independent of Docker01; its notification formatting is the remaining cleanup item.
 
 ## Safety
 
