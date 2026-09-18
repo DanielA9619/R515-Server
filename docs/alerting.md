@@ -284,7 +284,11 @@ Installer:
 scripts/install-media-notifications.sh
 ```
 
-Healthchecks.io remains a separate external notification path and does not depend on the local formatter. Its presentation can be cleaned up separately using an external/custom webhook while preserving that independence.
+Healthchecks.io remains a separate external notification path and does not depend on the local formatter. Its DOWN and UP notifications now use a custom webhook that posts clean JSON directly to hosted ntfy, preserving independence from Docker01 while producing concise phone notifications.
+
+Scrutiny SMART/disk-health notifications are also enabled on the R515 Alerts topic. The Scrutiny built-in notification test was delivered successfully after correcting the ntfy Shoutrrr URL to use `ntfy://ntfy.sh/<topic>?...` without an extra slash before the query string.
+
+The infrastructure ntfy topic was rotated after exposure. Alertmanager/notification-bridge, Scrutiny, and the Healthchecks webhook were updated to the replacement topic. The separate R515 Media topic was intentionally unchanged.
 
 ## Alertmanager routing
 
