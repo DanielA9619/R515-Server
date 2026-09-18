@@ -177,6 +177,30 @@ The route was validated before deployment, applied in-place to preserve the sing
 
 The raw `8082` endpoint remains a LAN troubleshooting path and is not WAN-forwarded.
 
+## Notifications
+
+Scrutiny SMART/disk-health notifications are enabled and publish to the existing hosted R515 Alerts ntfy topic.
+
+Installer:
+
+```text
+scripts/add-scrutiny-ntfy.sh
+```
+
+The topic value is loaded from the existing root-only alert topic file on `docker01` and is not committed to GitHub. Scrutiny receives the notification URL through:
+
+```text
+/srv/docker/monitoring/scrutiny/notify.env
+```
+
+The working Shoutrrr ntfy URL form is:
+
+```text
+ntfy://ntfy.sh/<private-topic>?priority=5&tags=warning
+```
+
+An earlier form with an extra slash immediately before the query string returned ntfy HTTP error `40401`. Removing that slash fixed delivery. Scrutiny's built-in `POST /api/health/notify` test then reached the phone successfully.
+
 ## Validation
 
 Phase 1 status:
@@ -188,6 +212,7 @@ Phase 1 status:
 5. Historical data starts accumulating. **Collector timer enabled; verify over normal runtime**
 6. The clean private Caddy URL works. **PASS**
 7. Uptime Kuma has a Scrutiny monitor. **Pending**
+8. Scrutiny SMART notification test reached R515 Alerts on the phone. **PASS**
 
 ## Script convention
 
