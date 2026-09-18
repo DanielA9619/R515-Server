@@ -404,7 +404,11 @@ Infrastructure Alertmanager notifications now pass through the local `notificati
 http://192.168.10.135:8787/health
 ```
 
-Healthchecks.io remains external and independent of Docker01; its notification formatting is the remaining cleanup item.
+Healthchecks.io remains external and independent of Docker01. Its DOWN/UP notifications now use a custom webhook with clean JSON formatting into the current R515 Alerts ntfy topic.
+
+Scrutiny SMART notifications are also enabled on the same R515 Alerts topic and its built-in notification test reached the phone successfully.
+
+The infrastructure alert topic was rotated after exposure; Alertmanager, the notification bridge, Scrutiny, and the Healthchecks webhook now use the replacement topic. The separate R515 Media topic was not changed.
 
 ## Safety
 
