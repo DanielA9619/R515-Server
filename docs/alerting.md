@@ -229,6 +229,63 @@ restored heartbeat       -> Healthchecks.io UP   -> ntfy -> phone
 
 This external path requires no inbound WAN port and remains independent of Docker01, Prometheus, Alertmanager, Grafana, and Uptime Kuma.
 
+## Notification formatting bridge
+
+Alertmanager now publishes to a local formatter on Docker01 before messages are sent to the hosted R515 Alerts ntfy topic.
+
+```text
+Prometheus
+  -> Alertmanager
+  -> notification-bridge on 192.168.10.135:8787
+  -> hosted ntfy.sh R515 Alerts topic
+  -> phone
+```
+
+The bridge removes raw Alertmanager metadata from phone notifications and keeps the useful summary/description, severity-oriented priority, and clean resolved messages.
+
+Live files:
+
+```text
+/srv/docker/monitoring/notification-bridge/bridge.py
+/srv/docker/monitoring/notification-bridge/docker-compose.yml
+```
+
+Health endpoint:
+
+```text
+http://192.168.10.135:8787/health
+```
+
+The end-to-end Alertmanager test successfully traversed the formatter and delivered to ntfy.
+
+## Media notification topic
+
+A separate hosted ntfy topic is configured for media events so routine downloads do not share the critical infrastructure-alert stream.
+
+Topic secret file:
+
+```text
+/srv/docker/monitoring/media-notifications/ntfy-topic.txt
+```
+
+The random topic value is treated as secret and is not committed.
+
+Configured and phone-tested applications:
+
+- Seerr;
+- Radarr;
+- Sonarr.
+
+qBittorrent notifications remain disabled for now because Radarr/Sonarr already provide grab/import lifecycle notifications.
+
+Installer:
+
+```text
+scripts/install-media-notifications.sh
+```
+
+Healthchecks.io remains a separate external notification path and does not depend on the local formatter. Its presentation can be cleaned up separately using an external/custom webhook while preserving that independence.
+
 ## Alertmanager routing
 
 Alertmanager groups by alert name and severity with:
