@@ -1,6 +1,49 @@
 # Current Configuration
 
-Last refreshed after the September 2026 private-domain rollout and power-outage recovery work.
+Last refreshed September 24, 2026 after the live hardware/storage inventory and earlier September private-domain, monitoring, and outage-recovery work.
+
+## Physical host
+
+- Dell PowerEdge R515
+- 2 × AMD Opteron 4284 CPUs
+- 8 cores per socket / 16 physical cores total
+- no SMT; 16 logical CPUs total
+- ~64 GB RAM (62 GiB usable reported by Linux)
+- NVIDIA Quadro P400 passed through to `docker01`
+- Broadcom / LSI SAS2008 SAS-2 controller using the `mpt3sas` driver
+- Broadcom NetXtreme II BCM5716 dual-port Gigabit Ethernet
+  - `nic0`: active and bridged through `vmbr0`
+  - `nic1`: currently down / unused
+
+### Physical disks
+
+| Device | Drive | Current role |
+| --- | --- | --- |
+| `/dev/sda` | SK hynix SC311 256 GB SATA SSD | Proxmox EFI + root + swap + local-LVM |
+| `/dev/sdb` | Seagate ST330006CLAR3000 3 TB SAS HDD | active `bulk` storage, ext4 at `/mnt/pve/bulk` |
+| `/dev/sdc` | Seagate ST9146853SS 146 GB SAS HDD | present; no active filesystem/mount shown |
+| `/dev/sdd` | Seagate ST9146853SS 146 GB SAS HDD | present; retains DDF RAID metadata |
+
+Scrutiny currently sees all four physical drives and reports them as passing SMART health checks.
+
+### Proxmox system SSD layout
+
+The 256 GB SSD contains:
+
+- 1 GiB EFI partition mounted at `/boot/efi`
+- `pve-root`: ~69.2 GiB ext4
+- `pve-swap`: 8 GiB
+- `pve-data` thin pool: ~140.9 GiB
+
+Current Proxmox storage use:
+
+| Storage | Type | Approx. capacity | Approx. used | Approx. available |
+| --- | --- | ---: | ---: | ---: |
+| `bulk` | dir/ext4 | 2.7 TiB | 1.4 TiB | 1.2 TiB |
+| `local` | dir | 67.6 GiB | 8.0 GiB | 56 GiB |
+| `local-lvm` | LVM-thin | 140.9 GiB | 72.5 GiB | 68.4 GiB |
+
+Host root usage at the September 24 checkpoint was about 13%.
 
 ## Network
 
@@ -174,6 +217,41 @@ Jellyfin public   working
 
 Caddy was also confirmed able to resolve and reach the Let's Encrypt ACME endpoint after the final reload.
 
+## Docker VM
+
+Current `docker01` VM configuration:
+
+- VMID: `100`
+- name: `Docker01`
+- 4 vCPU
+- 8192 MB RAM
+- CPU type: `x86-64-v2-AES`
+- 64 GB system disk on `local-lvm`
+- 2700 GB QCOW2 bulk disk on Proxmox `bulk` storage
+- VirtIO network on `vmbr0`
+- NVIDIA Quadro P400 passed through as `hostpci0`
+- QEMU guest agent enabled
+- autostart enabled
+
+The bulk-data path is:
+
+```text
+/dev/sdb1 (3 TB SAS HDD, ext4)
+  -> Proxmox /mnt/pve/bulk
+  -> Proxmox storage "bulk"
+  -> bulk:100/vm-100-disk-0.qcow2 (2700 GB)
+  -> docker01 scsi1
+  -> Debian /mnt/storage
+```
+
+This distinction matters for recovery and migration: the bulk filesystem is a large virtual disk image stored on the host-side ext4 filesystem, not a direct physical-disk passthrough.
+
+At the September 24 checkpoint, host-side `/mnt/pve/bulk` contents were approximately:
+
+- `images`: 1.1 TiB
+- `recovery`: 274 GiB
+- total bulk filesystem use: 1.4 TiB
+
 ## Docker services
 
 Known active services include:
@@ -332,7 +410,15 @@ The setting was added through Studio Code Server, then Home Assistant configurat
 
 ## Storage
 
-Main storage is mounted at:
+The physical 3 TB SAS disk is mounted on Proxmox as:
+
+```text
+/mnt/pve/bulk
+```
+
+Proxmox defines that mount as directory storage named `bulk`. `docker01` receives a 2700 GB QCOW2 virtual disk from that storage as `scsi1`.
+
+Inside `docker01`, the main application/data filesystem is mounted at:
 
 ```text
 /mnt/storage
