@@ -107,10 +107,22 @@ Remote access note: UniFi Teleport is the normal private remote path for these i
 ## Hardware
 
 - Dell PowerEdge R515
-- Proxmox on system SSD
-- 3 TB HDD attached to Debian and mounted at `/mnt/storage`
+- 2 × AMD Opteron 4284 CPUs (8 cores each, 16 physical cores total)
+- ~64 GB RAM (62 GiB usable reported by Linux)
+- Broadcom/LSI SAS2008 SAS-2 controller using the `mpt3sas` driver
+- Broadcom NetXtreme II BCM5716 dual-port 1 GbE; `nic0` active, `nic1` currently unused
+- 256 GB SK hynix SC311 SATA SSD for Proxmox boot/root/local-LVM
+- 3 TB Seagate ST330006CLAR3000 SAS HDD mounted on Proxmox as `/mnt/pve/bulk`
+- Two 146 GB Seagate ST9146853SS SAS HDDs currently present but not used for active bulk storage
 - NVIDIA Quadro P400 passed through to `docker01`
 - PCIe riser slot physically opened so the P400 fits
+
+The 3 TB bulk disk is not passed through directly. Proxmox exposes it as the `bulk` directory storage, and `docker01` receives a 2700 GB QCOW2 disk from that storage as `scsi1`. Inside Debian, that virtual disk provides the `/mnt/storage` filesystem used by media, downloads, shared files, backups, and related services.
+
+Current `bulk` usage is approximately 1.4 TiB used / 1.2 TiB available. Host-side contents are dominated by:
+
+- `/mnt/pve/bulk/images`: ~1.1 TiB
+- `/mnt/pve/bulk/recovery`: ~274 GiB
 
 ## Virtualization Layout
 
@@ -118,7 +130,7 @@ Remote access note: UniFi Teleport is the normal private remote path for these i
 | --- | --- | --- |
 | Bare metal | Dell PowerEdge R515 | Physical server |
 | Hypervisor | Proxmox | VM host |
-| VM | `docker01` | Debian VM for Docker, Jellyfin, Caddy, Samba, monitoring, DNS, dashboards, and media automation |
+| VM | `docker01` | Debian VM for Docker, Jellyfin, Caddy, Samba, monitoring, DNS, dashboards, and media automation; 4 vCPU, 8 GB RAM, 64 GB system disk + 2700 GB bulk QCOW2 disk |
 | VM | `haos` | Dedicated Home Assistant OS VM |
 
 ## Current Docker Services
