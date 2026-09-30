@@ -46,12 +46,12 @@ trap 'rm -f "$MARKER" "$LOG"' EXIT
 touch "$MARKER"
 
 set +e
-/usr/bin/bash "$BACKUP_SCRIPT" 2>&1 | tee "$LOG"
+/usr/bin/bash "$BACKUP_SCRIPT" nightly 2>&1 | tee "$LOG"
 rc=${PIPESTATUS[0]}
 set -e
 
 ARCHIVE="$(
-  find "$BACKUP_ROOT" -type f -name 'r515-configs-*.tar.gz' -newer "$MARKER" \
+  find "$BACKUP_ROOT" -type f -name 'r515-configs-nightly-*.tar.gz' -newer "$MARKER" \
     -printf '%T@ %p\n' 2>/dev/null |
   sort -nr |
   head -n 1 |
@@ -59,7 +59,7 @@ ARCHIVE="$(
 )"
 
 [ -n "$ARCHIVE" ] || {
-  echo "ERROR: backup script did not create a new r515-configs archive." >&2
+  echo "ERROR: backup script did not create a new r515-configs-nightly archive." >&2
   exit 1
 }
 
