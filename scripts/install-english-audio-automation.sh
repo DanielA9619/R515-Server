@@ -42,6 +42,7 @@ cat > "$FIXER" <<'PY'
 #!/usr/bin/env python3
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -78,15 +79,27 @@ if not audio:
     print(f"SKIP no audio tracks: {path}")
     raise SystemExit(0)
 
+def props(track):
+    return track.get("properties") or {}
+
+def language(track):
+    p = props(track)
+    return str(p.get("language_ietf") or p.get("language") or "und").lower()
+
+def track_name(track):
+    return str(props(track).get("track_name") or "").strip()
+
 def is_english(track):
-    p = track.get("properties") or {}
+    p = props(track)
     lang = str(p.get("language") or "").lower()
     ietf = str(p.get("language_ietf") or "").lower()
     return lang in {"eng", "en"} or ietf == "en" or ietf.startswith("en-")
 
+def is_unlabeled(track):
+    return language(track) in {"", "und", "unknown"}
+
 def is_commentary(track):
-    p = track.get("properties") or {}
-    name = str(p.get("track_name") or "").lower()
+    name = track_name(track).lower()
     bad = (
         "commentary",
         "director",
@@ -97,49 +110,84 @@ def is_commentary(track):
     )
     return any(word in name for word in bad)
 
-english = []
+def name_says_english(track):
+    name = track_name(track).lower()
+    if not name:
+        return False
+    return bool(re.search(r"(^|[^a-z])(english|eng)([^a-z]|$)", name))
 
-for audio_index, track in enumerate(audio, start=1):
-    if is_english(track):
-        p = track.get("properties") or {}
-        english.append(
-            {
-                "audio_index": audio_index,
-                "track": track,
-                "commentary": is_commentary(track),
-                "channels": int(p.get("audio_channels") or 0),
-                "default": bool(p.get("default_track")),
-            }
+def candidate(audio_index, track, reason):
+    p = props(track)
+    return {
+        "audio_index": audio_index,
+        "track": track,
+        "commentary": is_commentary(track),
+        "channels": int(p.get("audio_channels") or 0),
+        "default": bool(p.get("default_track")),
+        "reason": reason,
+    }
+
+def choose_ranked(candidates):
+    candidates.sort(
+        key=lambda x: (
+            x["commentary"],
+            -x["channels"],
+            -int(x["default"]),
+            x["audio_index"],
         )
+    )
+    return candidates[0]
 
-if not english:
-    langs = []
-    for track in audio:
-        p = track.get("properties") or {}
-        langs.append(str(p.get("language_ietf") or p.get("language") or "und"))
-    print(f"NO_ENGLISH audio={','.join(langs)} :: {path}")
+tagged_english = [
+    candidate(idx, track, "tagged English")
+    for idx, track in enumerate(audio, start=1)
+    if is_english(track)
+]
+
+chosen = None
+
+if tagged_english:
+    chosen = choose_ranked(tagged_english)
+else:
+    named_english = [
+        candidate(idx, track, "track name says English")
+        for idx, track in enumerate(audio, start=1)
+        if is_unlabeled(track) and name_says_english(track)
+    ]
+
+    if named_english:
+        chosen = choose_ranked(named_english)
+
+    elif len(audio) == 1:
+        chosen = candidate(1, audio[0], "single audio track")
+
+if chosen is None:
+    details = []
+    for idx, track in enumerate(audio, start=1):
+        name = track_name(track)
+        suffix = f":{name}" if name else ""
+        details.append(f"a{idx}={language(track)}{suffix}")
+
+    print(f"AMBIGUOUS_NO_ENGLISH audio={','.join(details)} :: {path}")
     raise SystemExit(0)
 
-english.sort(
-    key=lambda x: (
-        x["commentary"],
-        -x["channels"],
-        -int(x["default"]),
-        x["audio_index"],
-    )
-)
-
-chosen = english[0]
 chosen_index = chosen["audio_index"]
 
 default_indexes = [
     idx
     for idx, track in enumerate(audio, start=1)
-    if bool((track.get("properties") or {}).get("default_track"))
+    if bool(props(track).get("default_track"))
 ]
 
 if default_indexes == [chosen_index]:
-    print(f"OK already English default a{chosen_index}: {path}")
+    if chosen["reason"] == "tagged English":
+        label = "English"
+    elif chosen["reason"] == "track name says English":
+        label = "English-by-name"
+    else:
+        label = "single audio track"
+
+    print(f"OK already default ({label}) a{chosen_index}: {path}")
     raise SystemExit(0)
 
 cmd = ["mkvpropedit", path]
@@ -160,15 +208,21 @@ except subprocess.CalledProcessError as exc:
     print(f"ERROR mkvpropedit failed ({exc.returncode}): {path}", file=sys.stderr)
     raise SystemExit(exc.returncode or 1)
 
-p = chosen["track"].get("properties") or {}
-name = str(p.get("track_name") or "").strip()
-lang = str(p.get("language_ietf") or p.get("language") or "eng")
+p = props(chosen["track"])
+name = track_name(chosen["track"])
+lang = language(chosen["track"])
 extra = f" [{name}]" if name else ""
 
+if chosen["reason"] == "single audio track" and is_unlabeled(chosen["track"]):
+    description = "single unlabeled audio track"
+else:
+    description = f"{chosen['reason']} {lang}"
+
 print(
-    f"CHANGED default audio -> English {lang} a{chosen_index} "
+    f"CHANGED default audio -> {description} a{chosen_index} "
     f"{chosen['channels']}ch{extra}: {path}"
 )
+
 PY
 
 chmod 0755 "$FIXER"
@@ -299,7 +353,7 @@ echo "  - selects an English audio track when one exists"
 echo "  - avoids commentary/descriptive English tracks when possible"
 echo "  - clears the default flag from other audio tracks"
 echo "  - does not re-encode the movie"
-echo "  - logs NO_ENGLISH and leaves the file alone if no English track exists"
+echo "  - accepts a single unlabeled audio track as the only safe playback choice"\necho "  - recognizes unlabeled tracks whose title explicitly says English/ENG"\necho "  - logs AMBIGUOUS_NO_ENGLISH and leaves multi-track ambiguous files unchanged"
 echo "  - keeps a 10-minute overlap so imports are not missed"
 echo
 echo "=== R515 ENGLISH AUDIO AUTOMATION COMPLETE ==="
