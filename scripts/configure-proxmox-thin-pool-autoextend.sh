@@ -55,7 +55,7 @@ systemctl is-active --quiet lvm2-monitor.service ||
   fail "lvm2-monitor is not active"
 
 lvs "$POOL" \
-  -o vg_name,lv_name,lv_size,data_percent,metadata_percent,seg_monitor,metadata_profile
+  -o vg_name,lv_name,lv_size,data_percent,metadata_percent,seg_monitor,lv_profile
 
 echo
 echo "Effective profile:"
