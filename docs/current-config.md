@@ -1,6 +1,6 @@
 # Current Configuration
 
-Last refreshed September 24, 2026 after the live hardware/storage inventory and earlier September private-domain, monitoring, and outage-recovery work.
+Last refreshed October 30, 2026 after the Docker01 root-disk expansion, storage cleanup, monitoring hardening work, and Proxmox thin-pool protection changes.
 
 ## Physical host
 
@@ -41,9 +41,11 @@ Current Proxmox storage use:
 | --- | --- | ---: | ---: | ---: |
 | `bulk` | dir/ext4 | 2.7 TiB | 1.4 TiB | 1.2 TiB |
 | `local` | dir | 67.6 GiB | 8.0 GiB | 56 GiB |
-| `local-lvm` | LVM-thin | 140.9 GiB | 72.5 GiB | 68.4 GiB |
+| `local-lvm` | LVM-thin | 140.9 GiB | ~79.2 GiB (56.24%) | ~61.7 GiB |
 
 Host root usage at the September 24 checkpoint was about 13%.
+
+As of October 30, 2026, `pve/data` is actively monitored by `lvm2-monitor.service` with the per-LV metadata profile `r515-thin-autoextend`. The profile uses `thin_pool_autoextend_threshold=90` and `thin_pool_autoextend_percent=5`. The `pve` volume group retained 16 GiB of free extents after configuration. Prometheus remains the primary notification layer, with local-LVM warning/critical alerts before the pool reaches exhaustion.
 
 ## Network
 
@@ -226,12 +228,15 @@ Current `docker01` VM configuration:
 - 4 vCPU
 - 8192 MB RAM
 - CPU type: `x86-64-v2-AES`
-- 64 GB system disk on `local-lvm`
+- 100 GB system disk on `local-lvm`
 - 2700 GB QCOW2 bulk disk on Proxmox `bulk` storage
 - VirtIO network on `vmbr0`
 - NVIDIA Quadro P400 passed through as `hostpci0`
 - QEMU guest agent enabled
 - autostart enabled
+- guest root filesystem: `/dev/sda1`, ext4, expanded online to ~99 GiB usable
+- permanent guest swap: 4 GiB `/swapfile` (replaced the former swap partition)
+- October 30 post-cleanup root usage: ~51 GiB used / ~44 GiB available (~54%)
 
 The bulk-data path is:
 
@@ -436,6 +441,8 @@ Known folders include:
 /mnt/storage/downloads
 /mnt/storage/shared
 ```
+
+On October 30, 2026, an ~8 GiB `Baby Driver` MKV that had been stored under the Docker01 root filesystem at `/mnt/media-systemdrive/movies` was copied to `/mnt/storage/media/movies`, verified, and the root-filesystem duplicate was removed. This reduced Docker01 root usage from about 63% to about 54%.
 
 ## Samba
 
