@@ -41,7 +41,7 @@ fi
 
 cat > "$PROFILE_FILE" <<'EOF'
 activation {
-    thin_pool_autoextend_threshold=80
+    thin_pool_autoextend_threshold=90
     thin_pool_autoextend_percent=5
 }
 EOF
@@ -66,7 +66,7 @@ echo "Current VG free:"
 vgs pve -o vg_name,vg_size,vg_free
 
 echo
-echo "Policy: when pve/data reaches 80%, dmeventd may extend it by 5% if VG free extents remain."
+echo "Policy: when pve/data reaches 90%, dmeventd may extend it by 5% if VG free extents remain."
 echo "The Prometheus local-lvm 85%/95% alerts remain the primary notification layer."
 echo
 echo "=== PROXMOX THIN-POOL AUTOEXTEND CONFIGURED ==="
