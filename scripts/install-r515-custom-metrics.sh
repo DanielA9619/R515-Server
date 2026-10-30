@@ -36,7 +36,7 @@ echo "PASS: node_exporter textfile collector is available."
 section "INSTALL COLLECTOR"
 cat > "$COLLECTOR" <<'COLLECTOR_SCRIPT'
 #!/usr/bin/env bash
-set -u
+set -euo pipefail
 
 OUTDIR=/var/lib/node_exporter/textfile
 OUT=${OUTDIR}/r515.prom
@@ -141,6 +141,11 @@ r515_config_backup_present ${backup_present}
 # TYPE r515_config_backup_age_seconds gauge
 r515_config_backup_age_seconds ${backup_age}
 EOF
+
+if [ ! -s "$TMP" ]; then
+  echo "ERROR: refusing to replace $OUT with an empty metrics file." >&2
+  exit 1
+fi
 
 chmod 0644 "$TMP"
 mv -f "$TMP" "$OUT"
